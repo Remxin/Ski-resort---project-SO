@@ -1,0 +1,15 @@
+version: "3.9"
+name: projekt-stacja-narciarska
+services:
+  c-dev-end:
+    container_name: c-dev-end
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app  # Mapowanie aktualnego folderu do /app w kontenerze
+    stdin_open: true  # Umożliwia interaktywny terminal
+    tty: true         # Pozwala na uruchomienie bash
+networks:
+  default:
+    name: projekt-stacja-narciarska  # Stała nazwa sieci (grupy)
