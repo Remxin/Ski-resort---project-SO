@@ -32,6 +32,6 @@ run:
 	./$(BIN_DIR)/$(EXEC)
 # Clean structure
 clean:
-	rm -rf $(BUILD_DIR)/* $(BIN_DIR)/*
+	rm -rf $(BUILD_DIR)/*.o $(BIN_DIR)/$(EXEC)
 
 .PHONY: all clean
