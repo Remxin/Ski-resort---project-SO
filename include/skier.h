@@ -1,25 +1,30 @@
 #ifndef SKIER_H
 #define SKIER_H
 
-#include <stdbool.h>
-#include <pthread.h>
+#include <time.h>
+#include "ticket.h"
+#include "shared_memory.h"
 
-
-#include "config.h"
-#include "utils.h"
-
-
-// Structure to represent a skier
 typedef struct {
+    pid_t pid;
     int id;
     int age;
-    bool isVIP;           // Change to bool for VIP status
-    int children_count;
-    pthread_t* children;  // Threads for children (if skier has children)
+    time_t arrival_time;
+    int is_vip;
+    int num_children;
+    Ticket ticket;
 } Skier;
 
-// Function to create a skier
-Skier* create_skier();
+// Create new skier process
+pid_t create_skier_process(int id, int queue1_id, int queue2_id, SharedData* shared_data);
 
+// Create child processes
+void create_children(int num_children, int parent_id, int is_vip, int queue1_id, int queue2_id, SharedData* shared_data);
 
-#endif // SKIER_H
+// Initialize skier data
+Skier init_skier_data(int id, int is_child, int parent_id, int inherit_vip);
+
+// Buy ticket
+int buy_ticket(Skier* skier, int queue_id);
+
+#endif

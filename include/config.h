@@ -1,31 +1,46 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// Definicje zmiennych i parametrów konfiguracyjnych
+// Ticket durations (in hours)
+#define TICKET_TIME_2H 2
+#define TICKET_TIME_4H 4
+#define TICKET_TIME_8H 8
+#define TICKET_TIME_12H 12
 
-#define MAX_SKIERS 5
-#define HAS_CHILDREN_PROBABILITY 0.3
+// Base ticket prices for different durations
+#define NORMAL_PRICE_2H 50.0
+#define NORMAL_PRICE_4H 90.0
+#define NORMAL_PRICE_8H 160.0
+#define NORMAL_PRICE_12H 200.0
 
-// Szansa, że ktoś zostanie VIP-em
-#define VIP_CHANCE 0.15  // szansa, że ktoś będzie VIP
+#define VIP_MULTIPLIER 1.5  // VIP tickets are 50% more expensive
+#define DISCOUNT_MULTIPLIER 0.75  // 25% discount
 
-#define MAX_AGE 80  // zmienna potrzebna do generowania narciarzy
-// Wiek, powyżej którego osoba jest uznawana za seniora
+// Age limits
+#define CHILD_MIN_AGE 3
+#define CHILD_MAX_AGE 7
+#define ADULT_MIN_AGE 18
+#define ADULT_MAX_AGE 100
 #define SENIOR_AGE 65
+#define CHILD_DISCOUNT_AGE 12
 
-// Wiek, poniżej którego osoba jest dzieckiem
-#define CHILD_AGE 12
+// System limits
+#define MAX_QUEUE_LENGTH 100
+#define MAX_SKIERS 1000
 #define MAX_CHILDREN 4
 
-// Wiek, poniżej którego dzieci muszą być pod opieką dorosłego
-#define YOUNG_CHILD_AGE 8
+// Timing configurations (in seconds)
+#define MIN_SERVICE_TIME 1
+#define MAX_SERVICE_TIME 3
+#define MIN_ARRIVAL_TIME 3
+#define MAX_ARRIVAL_TIME 10
 
-// Liczba osób, które mogą przebywać na peronie dolnej stacji
-#define MAX_PEOPLE_AT_STATION 100
+// IPC keys
+#define SHM_KEY 12345
+#define QUEUE_KEY_1 12346
+#define QUEUE_KEY_2 12347
 
-// Inne parametry, jak np. czas przejazdu dla różnych tras (T1, T2, T3)
-#define T1 10  // Czas przejazdu na trasie 1 (w sekundach)
-#define T2 15  // Czas przejazdu na trasie 2 (w sekundach)
-#define T3 20  // Czas przejazdu na trasie 3 (w sekundach)
+// VIP probability
+#define VIP_PROBABILITY 0.2
 
 #endif
