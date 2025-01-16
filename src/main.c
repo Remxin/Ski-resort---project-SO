@@ -10,6 +10,7 @@
 #include "shared_memory.h"
 #include "config.h"
 #include "utils.h"
+#include "worker.h"
 
 volatile sig_atomic_t keep_running = 1;
 
@@ -88,6 +89,25 @@ int main() {
         exit(0);
     }
 
+    // Utworzenie procesu pracownika 1
+    pid_t worker1_pid = fork();
+    if (worker1_pid == 0) {
+        Worker* worker = init_worker(1, &shared_data->platform);
+        run_worker1(worker);
+        cleanup_worker(worker);
+        exit(0);
+    }
+
+    // Utworzenie procesu pracownika 2
+    pid_t worker2_pid = fork();
+    if (worker2_pid == 0) {
+        Worker* worker = init_worker(2, &shared_data->platform);
+        run_worker2(worker);
+        cleanup_worker(worker);
+        exit(0);
+    }
+
+    // Proces uruchamiający generator pracowników
     pid_t skier_generator_pid = fork();
     if (skier_generator_pid == 0) {
         skier_generator(queue1_id, queue2_id, shared_data);

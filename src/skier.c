@@ -43,6 +43,22 @@ pid_t create_skier_process(int id, int queue1_id, int queue2_id, SharedData* sha
                               queue1_id, queue2_id, shared_data);
             }
         }
+
+
+        if (enter_lower_platform(&shared_data->platform, skier.id) == 0) {
+            // Symulacja wjazdu na górę
+            sleep(randomInt(2, 8));
+            exit_lower_platform(&shared_data->platform);
+            
+            // Wjazd na górny peron
+            enter_upper_platform(&shared_data->platform);
+            
+            // Wybór losowej drogi zjazdu
+            int exit_path = rand() % 2;
+            while (exit_upper_platform(&shared_data->platform, exit_path, skier.id) != 0) {
+                sleep(1);  // Czekaj jeśli wyjście jest zajęte
+            }
+        }
         
         // Simulate skier activities until ticket expires
         while (1) {
@@ -82,6 +98,22 @@ void create_children(int num_children, int parent_id, int is_vip, int parent_tic
             }
             
             update_queue_length(shared_data, queue_number, -1);
+            
+            // Dodajemy obsługę platformy dla dzieci
+            if (enter_lower_platform(&shared_data->platform, child.id) == 0) {
+                // Symulacja wjazdu na górę
+                sleep(randomInt(2, 8));
+                exit_lower_platform(&shared_data->platform);
+                
+                // Wjazd na górny peron
+                enter_upper_platform(&shared_data->platform);
+                
+                // Wybór losowej drogi zjazdu
+                int exit_path = rand() % 2;
+                while (exit_upper_platform(&shared_data->platform, exit_path, child.id) != 0) {
+                    sleep(1);  // Czekaj jeśli wyjście jest zajęte
+                }
+            }
             
             // Simulate child activities
             while (1) {

@@ -3,12 +3,14 @@
 
 #include <sys/types.h>
 #include "config.h"
+#include "platform.h"  // Dodajemy załączenie platform.h tutaj
 
 typedef struct {
     int queue1_length;
     int queue2_length;
     pid_t skiers[MAX_SKIERS];
     int skier_count;
+    Platform platform;  // Dodajemy platformę jako część SharedData
 } SharedData;
 
 // Initialize shared memory
