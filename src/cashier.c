@@ -26,17 +26,14 @@ void run_cashier(int cashier_id, int queue_id, SharedData* shared_data) {
         TicketRequest request;
         TicketResponse response;
         
-         // Receive ticket request with timeout
-        struct msqid_ds queue_info;
-        msgctl(queue_id, IPC_STAT, &queue_info);
-
-        // Receive ticket request
-        if (msgrcv(queue_id, &request, sizeof(TicketRequest) - sizeof(long), 0, IPC_NOWAIT) == -1) {
-            if (errno == ENOMSG) { // empty queue
-                usleep(100000); // sleep for 1s
+        ssize_t recv_size = msgrcv(queue_id, &request, sizeof(TicketRequest) - sizeof(long), 0, IPC_NOWAIT);
+        
+        if (recv_size == -1) {
+            if (errno == ENOMSG) {
+                usleep(100000);
                 continue;
             }
-            if (errno == EINTR) {  // signal break
+            if (errno == EINTR) {
                 if (!cashier_running) break;
                 continue;
             }
@@ -44,11 +41,9 @@ void run_cashier(int cashier_id, int queue_id, SharedData* shared_data) {
             continue;
         }
 
-        // Simulate service time
         int service_time = randomInt(MIN_SERVICE_TIME, MAX_SERVICE_TIME + 1);
         sleep(service_time);
 
-        // Prepare response
         response.mtype = request.skier_id;
         response.status = 0;
 
@@ -56,33 +51,37 @@ void run_cashier(int cashier_id, int queue_id, SharedData* shared_data) {
         Ticket ticket;
         ticket.type = request.wants_vip ? 2 : 1;
         
-        // Random ticket duration
-        int durations[] = {TICKET_TIME_2H, TICKET_TIME_4H, TICKET_TIME_8H, TICKET_TIME_12H};
-        ticket.duration = durations[randomInt(0, 4)];
+        // Użyj czasu biletu rodzica jeśli jest dzieckiem, w przeciwnym razie wylosuj
+        if (request.parent_ticket_duration > 0) {
+            ticket.duration = request.parent_ticket_duration;
+        } else {
+            int durations[] = {TICKET_TIME_2H, TICKET_TIME_4H, TICKET_TIME_8H, TICKET_TIME_12H};
+            ticket.duration = durations[randomInt(0, 4)];
+        }
 
-        // Calculate price with duration and discounts
         int is_discounted = (request.age < CHILD_DISCOUNT_AGE || request.age > SENIOR_AGE);
         ticket.price = calculate_ticket_price(request.wants_vip, is_discounted, ticket.duration);
 
-        // Set validity time
         time_t current_time;
         time(&current_time);
         ticket.valid_until = current_time + (ticket.duration * 3600);
 
         response.ticket = ticket;
 
-        // Send response
         if (msgsnd(queue_id, &response, sizeof(TicketResponse) - sizeof(long), 0) == -1) {
             perror("msgsnd");
             continue;
         }
 
-        printf("Cashier %d: Sold %s ticket for %dh to customer %d (age: %d) for %.2f PLN\n",
+        printf("Cashier %d: Sold %s ticket for %dh to %s %d (age: %d) for %.2f PLN\n",
                cashier_id,
                ticket.type == 2 ? "VIP" : "Normal",
                ticket.duration,
+               request.parent_ticket_duration > 0 ? "child" : "customer",
                request.skier_id,
                request.age,
                ticket.price);
     }
+    
+    printf("Cashier %d finishing work\n", cashier_id);
 }

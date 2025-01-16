@@ -16,6 +16,7 @@ typedef struct {
     int is_child;
     int age;
     int wants_vip;
+    int parent_ticket_duration;  // Nowe pole dla czasu biletu rodzica
 } TicketRequest;
 
 typedef struct {
@@ -30,7 +31,7 @@ int init_ticket_queues();
 // Clean up ticket queues
 void cleanup_ticket_queues(int queue1_id, int queue2_id);
 
-// Calculate ticket price based on type, discounts and duration
+// Calculate ticket price
 double calculate_ticket_price(int is_vip, int is_discounted, int duration);
 
 #endif
