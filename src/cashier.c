@@ -3,20 +3,43 @@
 #include <unistd.h>
 #include <sys/msg.h>
 #include <time.h>
+#include <signal.h>
+#include <errno.h>
+
 #include "cashier.h"
 #include "ticket.h"
 #include "config.h"
 #include "utils.h"
 
+volatile sig_atomic_t cashier_running = 1;
+
+void handle_cashier_shutdown() {
+    cashier_running = 0;
+}
+
 void run_cashier(int cashier_id, int queue_id, SharedData* shared_data) {
-    printf("Cashier %d started working\n", cashier_id);
+    signal(SIGTERM, handle_cashier_shutdown);
+    signal(SIGINT, handle_cashier_shutdown);
     
-    while (1) {
+    printf("Cashier %d started working\n", cashier_id);
+    while (cashier_running) {
         TicketRequest request;
         TicketResponse response;
         
+         // Receive ticket request with timeout
+        struct msqid_ds queue_info;
+        msgctl(queue_id, IPC_STAT, &queue_info);
+
         // Receive ticket request
-        if (msgrcv(queue_id, &request, sizeof(TicketRequest) - sizeof(long), 0, 0) == -1) {
+        if (msgrcv(queue_id, &request, sizeof(TicketRequest) - sizeof(long), 0, IPC_NOWAIT) == -1) {
+            if (errno == ENOMSG) { // empty queue
+                usleep(100000); // sleep for 1s
+                continue;
+            }
+            if (errno == EINTR) {  // signal break
+                if (!cashier_running) break;
+                continue;
+            }
             perror("msgrcv");
             continue;
         }
