@@ -13,8 +13,37 @@
 
 volatile sig_atomic_t keep_running = 1;
 
-void handle_shutdown(int sig) {
+void handle_shutdown() {
     keep_running = 0;
+}
+
+void skier_generator(int queue1_id, int queue2_id, SharedData* shared_data) {
+    int skier_id = 0;
+    
+    while (keep_running) {
+        if (shared_data->skier_count < MAX_SKIERS) {
+            pid_t skier_pid = create_skier_process(skier_id++, queue1_id, queue2_id, shared_data);
+            if (skier_pid > 0) {
+                shared_data->skiers[shared_data->skier_count++] = skier_pid;
+            }
+        }
+
+        // Random delay between new skiers
+        sleep(randomInt(MIN_ARRIVAL_TIME, MAX_ARRIVAL_TIME + 1));
+
+        // Clean up finished processes
+        pid_t finished_pid;
+        while ((finished_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
+            for (int i = 0; i < shared_data->skier_count; i++) {
+                if (shared_data->skiers[i] == finished_pid) {
+                    shared_data->skiers[i] = shared_data->skiers[--shared_data->skier_count];
+                    break;
+                }
+            }
+        }
+    }
+    
+    exit(0);
 }
 
 int main() {
@@ -59,34 +88,21 @@ int main() {
         exit(0);
     }
 
-    // Main loop - create skiers
-    int skier_id = 0;
-    while (keep_running) {
-        if (shared_data->skier_count < MAX_SKIERS) {
-            pid_t skier_pid = create_skier_process(skier_id++, queue1_id, queue2_id, shared_data);
-            if (skier_pid > 0) {
-                shared_data->skiers[shared_data->skier_count++] = skier_pid;
-            }
-        }
-
-        // Random delay between new skiers
-        sleep(randomInt(MIN_ARRIVAL_TIME, MAX_ARRIVAL_TIME + 1));
-
-        // Clean up finished processes
-        pid_t finished_pid;
-        while ((finished_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
-            for (int i = 0; i < shared_data->skier_count; i++) {
-                if (shared_data->skiers[i] == finished_pid) {
-                    shared_data->skiers[i] = shared_data->skiers[--shared_data->skier_count];
-                    break;
-                }
-            }
-        }
+    pid_t skier_generator_pid = fork();
+    if (skier_generator_pid == 0) {
+        skier_generator(queue1_id, queue2_id, shared_data);
+        exit(0);
     }
+
+    while (keep_running) {
+        sleep(1);
+    }
+    
 
     printf("Shutting down...\n");
 
     // Terminate cashier processes
+    kill(skier_generator_pid, SIGTERM);
     kill(cashier1_pid, SIGTERM);
     kill(cashier2_pid, SIGTERM);
 
@@ -97,7 +113,6 @@ int main() {
 
     // Wait for all processes to finish
     while (wait(NULL) > 0);
-
     // Cleanup
     detach_shared_memory(shared_data);
     remove_shared_memory(shmid);
