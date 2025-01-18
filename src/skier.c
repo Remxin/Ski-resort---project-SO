@@ -6,6 +6,8 @@
 #include <sys/msg.h>
 #include <stdio.h>
 #include <signal.h>
+#include <string.h>  // dla strerror
+#include <errno.h>   // dla errno
 #include "skier.h"
 #include "utils.h"
 #include "config.h"
@@ -27,16 +29,22 @@ pid_t create_skier_process(int id, int queue1_id, int queue2_id, SharedData* sha
     if (pid == 0) {  // Child process (skier)
         Skier skier = init_skier_data(id, 0, 0, 0, 0);
         
-        // Kupno biletu
+        // Choose shorter queue and buy ticket
         int queue_number = get_shorter_queue(shared_data);
         int chosen_queue = (queue_number == 1) ? queue1_id : queue2_id;
+        printf("Skier %d choosing queue %d (ID: %d)\n", id, queue_number, chosen_queue);
         
         update_queue_length(shared_data, queue_number, 1);
         
+        // Must buy ticket first
         if (buy_ticket(&skier, chosen_queue) != 0) {
+            printf("Skier %d failed to buy ticket from queue %d\n", id, chosen_queue);
             update_queue_length(shared_data, queue_number, -1);
             exit(1);
         }
+        
+        // ... reszta kodu ...
+
         
         update_queue_length(shared_data, queue_number, -1);
 
@@ -52,7 +60,6 @@ pid_t create_skier_process(int id, int queue1_id, int queue2_id, SharedData* sha
         }
 
         // Próba wejścia na platformę
-        printf("Skier %d trying to enter platform\n", skier.id);
         while (enter_lower_platform(&shared_data->platform, skier.id) != 0) {
             if (!keep_running) {
                 printf("Skier %d leaving due to shutdown\n", skier.id);
@@ -90,8 +97,6 @@ void create_children(int num_children, int parent_id, int is_vip, int parent_tic
             
             update_queue_length(shared_data, queue_number, -1);
 
-            // Próba wejścia na platformę
-            printf("Child %d trying to enter platform\n", child.id);
             while (enter_lower_platform(&shared_data->platform, child.id) != 0) {
                 if (!keep_running) {
                     printf("Child %d leaving due to shutdown\n", child.id);
@@ -111,32 +116,37 @@ int buy_ticket(Skier* skier, int queue_id) {
     TicketRequest request;
     TicketResponse response;
     
-    request.mtype = 1;
-    request.skier_id = skier->id;
+    request.mtype = 1;  // Typ żądania zawsze 1
+    request.skier_id = skier->id + 1;  // ID musi być > 0 dla odpowiedzi
     request.is_child = (skier->age < ADULT_MIN_AGE);
     request.age = skier->age;
     request.wants_vip = skier->is_vip;
     request.parent_ticket_duration = skier->parent_ticket_duration;
     
-    if (msgsnd(queue_id, &request, sizeof(TicketRequest) - sizeof(long), 0) == -1) {
-        perror("msgsnd error in buy_ticket");
+    printf("Skier %d requesting ticket from queue %d\n", skier->id, queue_id);
+    
+   if (msgsnd(queue_id, &request, sizeof(TicketRequest) - sizeof(long), 0) == -1) {
+        printf("Skier %d: msgsnd error for queue %d: %s\n", skier->id, queue_id, strerror(errno));
         return 1;
     }
     
-    if (msgrcv(queue_id, &response, sizeof(TicketResponse) - sizeof(long), skier->id, 0) == -1) {
-        perror("msgrcv error in buy_ticket");
+    if (msgrcv(queue_id, &response, sizeof(TicketResponse) - sizeof(long), request.skier_id, 0) == -1) {
+        printf("Skier %d: msgrcv error for queue %d: %s\n", skier->id, queue_id, strerror(errno));
         return 1;
     }
     
-    if (response.status != 0 || response.ticket.duration == 0) {
+    if (response.status != 0) {
+        printf("Skier %d received error status from cashier\n", skier->id);
         return 1;
     }
     
     skier->ticket = response.ticket;
-    printf("Skier %d bought a %s ticket for %d hours for %f\n", 
+    printf("Skier %d bought a %s ticket for %d hours for %.2f PLN\n", 
            skier->id, 
            skier->ticket.type == 2 ? "VIP" : "normal",
-           skier->ticket.duration, skier->ticket.price);
+           skier->ticket.duration,
+           skier->ticket.price);
+    
     return 0;
 }
 

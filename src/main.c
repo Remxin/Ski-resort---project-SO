@@ -19,7 +19,7 @@ void handle_shutdown() {
 }
 
 void skier_generator(int queue1_id, int queue2_id, SharedData* shared_data) {
-    int skier_id = 0;
+    int skier_id = 1;
     
     while (keep_running) {
         if (shared_data->skier_count < MAX_SKIERS) {
@@ -76,6 +76,8 @@ int main() {
         exit(1);
     }
 
+    printf("Created queues with IDs: queue1=%d, queue2=%d\n", queue1_id, queue2_id);
+
     // Initialize platform
     if (init_platform() == NULL) {
         printf("Failed to initialize platform\n");
@@ -101,7 +103,7 @@ int main() {
     }
 
     // Main loop - create skiers
-    int next_skier_id = 0;  // Counter for generating skier IDs
+    int next_skier_id = 1;  // Counter for generating skier IDs
     while (keep_running) {
         if (shared_data->skier_count < MAX_SKIERS) {
             pid_t skier_pid = create_skier_process(next_skier_id++, queue1_id, queue2_id, shared_data);
