@@ -6,18 +6,36 @@
 
 Platform* init_platform() {
     Platform* platform = malloc(sizeof(Platform));
-    
-    // Inicjalizacja semafora pojemności peronu
-    sem_init(&platform->platform_capacity, 1, MAX_PLATFORM_CAPACITY);
-    
-    // Inicjalizacja semaforów bramek dolnego peronu
-    for(int i = 0; i < 4; i++) {
-        sem_init(&platform->lower_gates[i], 1, 1);
+    if (platform == NULL) {
+        perror("Failed to allocate platform");
+        return NULL;
     }
     
-    // Inicjalizacja semaforów wyjść górnego peronu
-    for(int i = 0; i < 2; i++) {
-        sem_init(&platform->upper_exits[i], 1, 1);
+    printf("Initializing platform with capacity %d\n", MAX_PLATFORM_CAPACITY);
+    
+    // Inicjalizacja semafora pojemności peronu
+    if (sem_init(&platform->platform_capacity, 1, MAX_PLATFORM_CAPACITY) != 0) {
+        perror("Failed to initialize platform capacity semaphore");
+        free(platform);
+        return NULL;
+    }
+
+    int sem_value;
+    sem_getvalue(&platform->platform_capacity, &sem_value);
+    printf("Initial platform capacity semaphore value: %d\n", sem_value);
+    
+    // Inicjalizacja semaforów bramek
+    for(int i = 0; i < 4; i++) {
+        if (sem_init(&platform->lower_gates[i], 1, 1) != 0) {
+            perror("Failed to initialize gate semaphore");
+            // Cleanup previously initialized semaphores
+            sem_destroy(&platform->platform_capacity);
+            for(int j = 0; j < i; j++) {
+                sem_destroy(&platform->lower_gates[j]);
+            }
+            free(platform);
+            return NULL;
+        }
     }
     
     platform->lower_platform_count = 0;
@@ -26,77 +44,42 @@ Platform* init_platform() {
     return platform;
 }
 
-// ... (reszta implementacji pozostaje bez zmian)
-
 int enter_lower_platform(Platform* platform, int skier_id) {
-    printf("Attempting to enter lower platform - skier %d\n", skier_id);
+    int current_value;
+    sem_getvalue(&platform->platform_capacity, &current_value);
+    printf("Skier %d trying to enter. Current platform capacity: %d\n", skier_id, current_value);
     
-    // Sprawdź czy jest miejsce na peronie
-    if (sem_trywait(&platform->platform_capacity) == -1) {
-        printf("Platform is full - skier %d waiting\n", skier_id);
-        return -1; // Peron jest pełny
+    if (sem_wait(&platform->platform_capacity) == 0) {
+        int gate = rand() % 4;
+        
+        if (sem_wait(&platform->lower_gates[gate]) == 0) {
+            platform->lower_platform_count++;
+            printf("Skier %d successfully entered through gate %d. Total on platform: %d\n", 
+                   skier_id, gate, platform->lower_platform_count);
+            sem_post(&platform->lower_gates[gate]);
+            return 0;
+        }
+        sem_post(&platform->platform_capacity);
     }
     
-    // Wybierz losową bramkę
-    int gate = rand() % 4;
-    printf("Skier %d trying gate %d\n", skier_id, gate);
-    
-    // Próbuj przejść przez bramkę
-    if (sem_wait(&platform->lower_gates[gate]) == 0) {
-        platform->lower_platform_count++;
-        printf("Skier %d entered lower platform through gate %d. Platform count: %d\n", 
-               skier_id, gate, platform->lower_platform_count);
-        sem_post(&platform->lower_gates[gate]);
-        return 0;
-    }
-    
-    // Jeśli nie udało się przejść przez bramkę, zwolnij miejsce na peronie
-    printf("Failed to enter through gate - skier %d\n", skier_id);
-    sem_post(&platform->platform_capacity);
+    printf("Skier %d failed to enter platform\n", skier_id);
     return -1;
 }
 
 void exit_lower_platform(Platform* platform) {
     platform->lower_platform_count--;
     sem_post(&platform->platform_capacity);
-    printf("Skier left lower platform. Platform count: %d\n", 
-           platform->lower_platform_count);
-}
-
-void enter_upper_platform(Platform* platform) {
-    platform->upper_platform_count++;
-    printf("Skier arrived at upper platform. Platform count: %d\n", 
-           platform->upper_platform_count);
-}
-
-int exit_upper_platform(Platform* platform, int exit_number, int skier_id) {
-    if (exit_number < 0 || exit_number >= 2) {
-        return -1;
-    }
-    
-    // Próbuj wyjść wybraną drogą
-    if (sem_wait(&platform->upper_exits[exit_number]) == 0) {
-        platform->upper_platform_count--;
-        printf("Skier %d left upper platform through exit %d. Platform count: %d\n", 
-               skier_id, exit_number, platform->upper_platform_count);
-        sem_post(&platform->upper_exits[exit_number]);
-        return 0;
-    }
-    
-    return -1;
+    printf("A skier left the platform. Total remaining: %d\n", platform->lower_platform_count);
 }
 
 void cleanup_platform(Platform* platform) {
-    // Zniszczenie wszystkich semaforów
-    sem_destroy(&platform->platform_capacity);
-    
-    for(int i = 0; i < 4; i++) {
-        sem_destroy(&platform->lower_gates[i]);
+    if (platform != NULL) {
+        sem_destroy(&platform->platform_capacity);
+        
+        for(int i = 0; i < 4; i++) {
+            sem_destroy(&platform->lower_gates[i]);
+        }
+        
+        free(platform);
     }
-    
-    for(int i = 0; i < 2; i++) {
-        sem_destroy(&platform->upper_exits[i]);
-    }
-    
-    free(platform);
 }
