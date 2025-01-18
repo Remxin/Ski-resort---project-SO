@@ -10,6 +10,7 @@
 #include "shared_memory.h"
 #include "config.h"
 #include "utils.h"
+#include "worker.h"
 
 volatile sig_atomic_t keep_running = 1;
 
@@ -18,7 +19,7 @@ void handle_shutdown() {
 }
 
 void skier_generator(int queue1_id, int queue2_id, SharedData* shared_data) {
-    int skier_id = 0;
+    int skier_id = 1;
     
     while (keep_running) {
         if (shared_data->skier_count < MAX_SKIERS) {
@@ -75,6 +76,19 @@ int main() {
         exit(1);
     }
 
+    printf("Created queues with IDs: queue1=%d, queue2=%d\n", queue1_id, queue2_id);
+
+    // Initialize platform
+    if (init_platform() == NULL) {
+        printf("Failed to initialize platform\n");
+        // Cleanup
+        msgctl(queue1_id, IPC_RMID, NULL);
+        msgctl(queue2_id, IPC_RMID, NULL);
+        detach_shared_memory(shared_data);
+        remove_shared_memory(shmid);
+        exit(1);
+    }
+
     // Create cashier processes
     pid_t cashier1_pid = fork();
     if (cashier1_pid == 0) {
@@ -88,21 +102,33 @@ int main() {
         exit(0);
     }
 
-    pid_t skier_generator_pid = fork();
-    if (skier_generator_pid == 0) {
-        skier_generator(queue1_id, queue2_id, shared_data);
-        exit(0);
-    }
-
+    // Main loop - create skiers
+    int next_skier_id = 1;  // Counter for generating skier IDs
     while (keep_running) {
-        sleep(1);
+        if (shared_data->skier_count < MAX_SKIERS) {
+            pid_t skier_pid = create_skier_process(next_skier_id++, queue1_id, queue2_id, shared_data);
+            if (skier_pid > 0) {
+                shared_data->skiers[shared_data->skier_count++] = skier_pid;
+            }
+        }
+
+        sleep(randomInt(MIN_ARRIVAL_TIME, MAX_ARRIVAL_TIME + 1));
+
+        // Clean up finished processes
+        pid_t finished_pid;
+        while ((finished_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
+            for (int i = 0; i < shared_data->skier_count; i++) {
+                if (shared_data->skiers[i] == finished_pid) {
+                    shared_data->skiers[i] = shared_data->skiers[--shared_data->skier_count];
+                    break;
+                }
+            }
+        }
     }
+
+    printf("Sending terminate signal to all processes...\n");
     
-
-    printf("Shutting down...\n");
-
     // Terminate cashier processes
-    kill(skier_generator_pid, SIGTERM);
     kill(cashier1_pid, SIGTERM);
     kill(cashier2_pid, SIGTERM);
 
@@ -110,14 +136,16 @@ int main() {
     for (int i = 0; i < shared_data->skier_count; i++) {
         kill(shared_data->skiers[i], SIGTERM);
     }
-
+    
     // Wait for all processes to finish
+    printf("Waiting for processes to finish...\n");
     while (wait(NULL) > 0);
-    // Cleanup
+    
+    // Cleanup resources
     detach_shared_memory(shared_data);
     remove_shared_memory(shmid);
     cleanup_ticket_queues(queue1_id, queue2_id);
-
-    printf("System shut down successfully\n");
+    
+    printf("Cleanup complete\n");
     return 0;
 }

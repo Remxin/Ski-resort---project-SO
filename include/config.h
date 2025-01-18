@@ -35,6 +35,11 @@
 #define MIN_ARRIVAL_TIME 3
 #define MAX_ARRIVAL_TIME 10
 
+// Platform configuration
+#define MAX_PLATFORM_CAPACITY 80
+#define NUM_LOWER_GATES 4
+#define NUM_UPPER_EXITS 2
+
 // IPC keys
 #define SHM_KEY 12345
 #define QUEUE_KEY_1 12346

@@ -16,13 +16,13 @@ typedef struct {
     int is_child;
     int age;
     int wants_vip;
-    int parent_ticket_duration;  // Nowe pole dla czasu biletu rodzica
+    int parent_ticket_duration;
 } TicketRequest;
 
 typedef struct {
     long mtype;
-    Ticket ticket;
     int status;         // 0 - success, 1 - error
+    Ticket ticket;      // Używamy zdefiniowanego wcześniej typu Ticket
 } TicketResponse;
 
 // Initialize ticket queues
