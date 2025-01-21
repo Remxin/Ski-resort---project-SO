@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - .:/app  # Mapowanie aktualnego folderu do /app w kontenerze
+      - ./:/app  # Mapowanie aktualnego folderu do /app w kontenerze
     stdin_open: true  # Umożliwia interaktywny terminal
     tty: true         # Pozwala na uruchomienie bash
 networks:
