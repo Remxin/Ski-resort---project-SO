@@ -50,7 +50,7 @@ pid_t create_skier_process(int id, int queue1_id, int queue2_id, SharedData* sha
         skier.num_children = num_children;
         
         if (num_children > 0) {
-            create_children(&skier);
+            create_children(&skier, shared_data);
         }
     }
         // Choose shorter queue and buy ticket
@@ -90,18 +90,18 @@ pid_t create_skier_process(int id, int queue1_id, int queue2_id, SharedData* sha
 
     update_queue_length(shared_data, queue_number, -(1 + skier.num_children));
 
+    printf("Parent %d: shared_data address: %p\n", skier.id, (void*)shared_data);
+    // Próba wejścia na platformę
+    while (enter_lower_platform(&shared_data->platform, skier.id) != 0) {
+        if (!keep_running) {
+            printf("Skier %d leaving due to shutdown\n", skier.id);
+            exit(0);
+        }
+        sleep(1);
+    }
 
-    // // Próba wejścia na platformę
-    // while (enter_lower_platform(&shared_data->platform, skier.id) != 0) {
-    //     if (!keep_running) {
-    //         printf("Skier %d leaving due to shutdown\n", skier.id);
-    //         exit(0);
-    //     }
-    //     sleep(1);
-    // }
-
-    // sleep(1); // Krótkie oczekiwanie przed zakończeniem
-    // exit(0);
+    sleep(10); // Krótkie oczekiwanie przed zakończeniem
+    exit(0);
     
     
 
@@ -111,17 +111,13 @@ void send_message_to_child(Child* child, int new_state) {
     StateMessage msg;
     msg.mtype = child->id;          // ID dziecka jako typ wiadomości
     msg.new_state = new_state;      // Nowy stan
-
     
     if (msgsnd(child->msg_queue_id, &msg, sizeof(StateMessage) - sizeof(long), 0) == -1) {
         perror("Błąd wysyłania wiadomości");
-    } else {
-        printf("Wysłano wiadomość do dziecka %d: stan=%d\n", 
-               child->id, new_state);
-    }
+    } 
 }
 
-void create_children(Skier* parent) {
+void create_children(Skier* parent, SharedData* shared_data) {
     pid_t children_pids[MAX_CHILDREN];
     
     for (int i = 0; i < parent->num_children; i++) {
@@ -130,11 +126,15 @@ void create_children(Skier* parent) {
         parent->children[i].id = 1000 + (parent->id * 10) + i;
         parent->children[i].state = 0;
         parent->children[i].msg_queue_id = parent->msg_queue_id;
+        parent->children[i].shared_data = shared_data;
         pthread_mutex_init(&parent->children[i].mutex, NULL);
 
         pid_t child_pid = fork();
         if (child_pid == 0) { // Proces dziecka
             Child* child = &parent->children[i];
+
+
+
             ChildMessage ready_message;
             ready_message.mtype = parent->id;
             ready_message.child_id = child->id;
@@ -148,9 +148,19 @@ void create_children(Skier* parent) {
                     pthread_mutex_lock(&child->mutex);
                     child->state = msg.new_state;
                     switch(child->state) {
-                        case GOT_TICKET:
-                            printf("Child %d (parent %d): got ticket. Child state: %d\n", child->id, parent->id, child->state);
-                            break;
+                    case GOT_TICKET:
+                        printf("Child %d (parent %d): got ticket. Child state: %dhalooo\n", 
+                            child->id, parent->id, child->state);
+                        // Próba wejścia na platformę
+                        while (enter_lower_platform(&shared_data->platform, child->id) != 0) {
+                            if (!keep_running) {
+                                printf("Child %d leaving due to shutdown\n", child->id);
+                                exit(0);
+                            }
+                            sleep(1);
+                        }
+                        sleep(10);
+                        break;
                     }
                     pthread_mutex_unlock(&child->mutex);
                 }

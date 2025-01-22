@@ -45,6 +45,7 @@ Platform* init_platform() {
 }
 
 int enter_lower_platform(Platform* platform, int skier_id) {
+    printf("child %d tryies to enter\n", skier_id);
     int current_value;
     sem_getvalue(&platform->platform_capacity, &current_value);
     printf("Skier %d trying to enter. Current platform capacity: %d\n", skier_id, current_value);
