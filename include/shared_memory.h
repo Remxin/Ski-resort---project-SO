@@ -2,6 +2,7 @@
 #define SHARED_MEMORY_H
 
 #include <sys/types.h>
+#include <fcntl.h>
 #include "config.h"
 #include "platform.h"  // Dodajemy załączenie platform.h tutaj
 
@@ -15,6 +16,8 @@ typedef struct {
 
 // Initialize shared memory
 int init_shared_memory();
+
+int get_shared_memory_id(void);
 
 // Attach to shared memory
 SharedData* attach_shared_memory(int shmid);

@@ -129,6 +129,11 @@ void create_children(Skier* parent, SharedData* shared_data) {
         pid_t child_pid = fork();
         if (child_pid == 0) { // Proces dziecka
             Child* child = &parent->children[i];
+            shared_data = attach_shared_memory(get_shared_memory_id());
+            if (shared_data == (void*)-1) {
+                perror("child failed to attach shared memory");
+                exit(1);
+            }
 
 
 
@@ -244,6 +249,7 @@ int buy_child_ticket(Child *child, int queue_id) {
 }
 
 Skier init_skier_data(int id, int is_child, int parent_ticket_duration) {
+
     Skier skier;
     skier.id = id;
     skier.is_vip = random_chance(VIP_PROBABILITY);
@@ -258,4 +264,44 @@ Skier init_skier_data(int id, int is_child, int parent_ticket_duration) {
     }
     
     return skier;
+}
+
+int enter_lift(Lift* lift, Skier* parent) {
+    int family_size = 1 + parent->num_children;
+    sem_wait(&lift->seats_mutex);
+
+    if (!find_family_space(lift, family_size)) {
+        sem_post(&lift->seats_mutex);
+        return -1;
+    }
+
+    int seat_index = 0;
+    lift->seats[lift->enter_pointer][seat_index++] = parent->id;
+    for (int i = 0; i < parent->num_children; i++) {
+        lift->seats[lift->enter_pointer][seat_index++] = parent->children[i].id;
+    }
+    printf("Family (parent %d) entered lift at seat %d\n", 
+           parent->id, lift->enter_pointer);
+    
+    sem_post(&lift->seats_mutex);
+    return 0;
+}
+
+int try_enter_lift(Lift* lift, Skier* skier) {
+    if(skier->is_vip) {
+        sem_wait(&lift->vip_queue);
+    } else {
+        sem_wait(&lift->regular_queue);
+    }
+    
+    int result = enter_lift(lift, skier);
+    if(result != 0) {
+        // Nie udało się wsiąść - zwalniamy miejsce w kolejce
+        if(skier->is_vip) {
+            sem_post(&lift->vip_queue);
+        } else {
+            sem_post(&lift->regular_queue);
+        }
+    }
+    return result;
 }

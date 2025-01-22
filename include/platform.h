@@ -7,12 +7,11 @@
 #include "utils.h"
 
 typedef struct {
-    sem_t platform_capacity;     // kontrola liczby osób na peronie
-    sem_t lower_gates[4];       // 4 bramki wejściowe na dolnym peronie
-    sem_t upper_exits[2];       // 2 drogi wyjściowe z górnego peronu
-    pthread_mutex_t count_mutex;
-    int lower_platform_count;    // licznik osób na dolnym peronie
-    int upper_platform_count;    // licznik osób na górnym peronie
+   sem_t platform_capacity;
+   sem_t lower_gates[4];
+   sem_t* counter_sem;
+   int lower_platform_count;
+   int upper_platform_count;
 } Platform;
 
 // Usuwamy shared_data z inicjalizacji

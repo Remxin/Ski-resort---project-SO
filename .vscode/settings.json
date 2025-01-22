@@ -3,7 +3,8 @@
     "*.rmd": "markdown",
     "skier.h": "c",
     "shared_memory.h": "c",
-    "__locale": "c"
+    "__locale": "c",
+    "lift.h": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "clang",
   "C_Cpp_Runner.cppCompilerPath": "clang++",

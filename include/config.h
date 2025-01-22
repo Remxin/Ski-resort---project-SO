@@ -3,6 +3,7 @@
 
 #define SEATS_COUNT 80
 #define SEAT_PLACES 3
+#define LIFT_TRAVEL_TIME 5
 
 // Ticket durations (in hours)
 #define TICKET_TIME_2H 2

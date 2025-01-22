@@ -1,7 +1,11 @@
 #ifndef LIFT_H
 #define LIFT_H
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <semaphore.h>
+#include <pthread.h>
+#include <unistd.h>
 #include "config.h"
 
 // typedef struct {
@@ -15,12 +19,20 @@
 typedef struct {
     sem_t lower_exit;
     sem_t upper_exit;
+    sem_t seats_mutex;      // do synchronizacji dostępu do miejsc
+    sem_t vip_queue;        // do priorytetyzacji VIPów
+    sem_t regular_queue;    // dla zwykłych narciarzy
     int seats[SEATS_COUNT][SEAT_PLACES];
     int enter_pointer;
     int exit_pointer;
 } Lift;
 
 Lift* init_lift();
+
+int find_family_space(Lift* lift, int family_size);
+void exit_lift(Lift *lift);
+void *operate_lift(void *arg);
+
 
 
 #endif

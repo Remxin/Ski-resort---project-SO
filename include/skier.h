@@ -3,6 +3,7 @@
 
 #include <time.h>
 #include "ticket.h"
+#include "lift.h"
 #include "shared_memory.h"
 #include <pthread.h>
 
@@ -70,5 +71,9 @@ int buy_child_ticket(Child *child, int queue_id);
 
 // Komunikacja z dzieckiem
 void send_message_to_child(Child* child, int new_state);
+
+// Try to enter lift
+int try_enter_lift(Lift* lift, Skier* skier);
+int enter_lift(Lift* lift, Skier* parent);
 
 #endif

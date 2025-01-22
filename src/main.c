@@ -11,12 +11,14 @@
 #include "config.h"
 #include "utils.h"
 #include "worker.h"
+#include "lift.h"
 
 volatile sig_atomic_t keep_running = 1;
 
 void handle_shutdown() {
     keep_running = 0;
 }
+
 
 void run_skier_generator(int queue1_id, int queue2_id, SharedData* shared_data) {
     int skier_id = 1;
@@ -77,9 +79,9 @@ int main() {
 
     printf("Created queues with IDs: queue1=%d, queue2=%d\n", queue1_id, queue2_id);
 
-    // Initialize platform
-    if (init_platform() == NULL) {
-        printf("Failed to initialize platform\n");
+
+    if (init_lift() == NULL) {
+        printf("Failed to initialize lift\n");
         // Cleanup
         msgctl(queue1_id, IPC_RMID, NULL);
         msgctl(queue2_id, IPC_RMID, NULL);
