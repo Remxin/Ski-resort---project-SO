@@ -10,6 +10,11 @@ Platform* init_platform() {
         perror("Failed to allocate platform");
         return NULL;
     }
+    pthread_mutexattr_t mutex_attr;
+    pthread_mutexattr_init(&mutex_attr);
+    pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&platform->count_mutex, &mutex_attr);
+    pthread_mutexattr_destroy(&mutex_attr);
     
     printf("Initializing platform with capacity %d\n", MAX_PLATFORM_CAPACITY);
     
@@ -44,19 +49,22 @@ Platform* init_platform() {
     return platform;
 }
 
-int enter_lower_platform(Platform* platform, int skier_id) {
-    printf("child %d tryies to enter\n", skier_id);
+int enter_lower_platform(Platform* platform, int skier_id, int is_vip) {
     int current_value;
     sem_getvalue(&platform->platform_capacity, &current_value);
-    printf("Skier %d trying to enter. Current platform capacity: %d\n", skier_id, current_value);
+    printf("Skier %d (VIP %d) trying to enter. Current platform capacity: %d\n", skier_id, is_vip, current_value);
     
     if (sem_wait(&platform->platform_capacity) == 0) {
-        int gate = rand() % 4;
+        int gate = is_vip ? 0 :randomInt(1,3);
+  
         
         if (sem_wait(&platform->lower_gates[gate]) == 0) {
+            pthread_mutex_lock(&platform->count_mutex);
             platform->lower_platform_count++;
+            int current_count = platform->lower_platform_count;
+            pthread_mutex_unlock(&platform->count_mutex);
             printf("Skier %d successfully entered through gate %d. Total on platform: %d\n", 
-                   skier_id, gate, platform->lower_platform_count);
+                   skier_id, gate, current_count);
             sem_post(&platform->lower_gates[gate]);
             return 0;
         }
@@ -68,9 +76,12 @@ int enter_lower_platform(Platform* platform, int skier_id) {
 }
 
 void exit_lower_platform(Platform* platform) {
+    pthread_mutex_lock(&platform->count_mutex);
     platform->lower_platform_count--;
+    int current_count = platform->lower_platform_count;
+    pthread_mutex_unlock(&platform->count_mutex);
     sem_post(&platform->platform_capacity);
-    printf("A skier left the platform. Total remaining: %d\n", platform->lower_platform_count);
+    printf("A skier left the platform. Total remaining: %d\n", current_count);
 }
 
 void cleanup_platform(Platform* platform) {
@@ -81,6 +92,7 @@ void cleanup_platform(Platform* platform) {
             sem_destroy(&platform->lower_gates[i]);
         }
         
+        pthread_mutex_destroy(&platform->count_mutex);
         free(platform);
     }
 }

@@ -60,7 +60,7 @@ pid_t create_skier_process(int id, int queue1_id, int queue2_id, SharedData* sha
 void create_children(Skier* parent, SharedData* shared_data);
 
 // Initialize skier data
-Skier init_skier_data(int id, int is_child, int parent_id, int inherit_vip, int parent_ticket_duration);
+Skier init_skier_data(int id, int is_child, int parent_ticket_duration);
 
 // Buy ticket
 int buy_ticket(Skier* skier, int queue_id);
