@@ -1,6 +1,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define SEATS_COUNT 80
+#define SEAT_PLACES 3
+
 // Ticket durations (in hours)
 #define TICKET_TIME_2H 2
 #define TICKET_TIME_4H 4
