@@ -4,9 +4,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/msg.h>
-#include "skier.h"
 #include "ticket.h"
-#include "cashier.h"
 #include "shared_memory.h"
 #include "config.h"
 #include "utils.h"
@@ -18,34 +16,6 @@ void handle_shutdown() {
     keep_running = 0;
 }
 
-void skier_generator(int queue1_id, int queue2_id, SharedData* shared_data) {
-    int skier_id = 1;
-    
-    while (keep_running) {
-        if (shared_data->skier_count < MAX_SKIERS) {
-            pid_t skier_pid = create_skier_process(skier_id++, queue1_id, queue2_id, shared_data);
-            if (skier_pid > 0) {
-                shared_data->skiers[shared_data->skier_count++] = skier_pid;
-            }
-        }
-
-        // Random delay between new skiers
-        sleep(randomInt(MIN_ARRIVAL_TIME, MAX_ARRIVAL_TIME + 1));
-
-        // Clean up finished processes
-        pid_t finished_pid;
-        while ((finished_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
-            for (int i = 0; i < shared_data->skier_count; i++) {
-                if (shared_data->skiers[i] == finished_pid) {
-                    shared_data->skiers[i] = shared_data->skiers[--shared_data->skier_count];
-                    break;
-                }
-            }
-        }
-    }
-    
-    exit(0);
-}
 
 int main() {
     srand(time(NULL));
@@ -66,7 +36,7 @@ int main() {
         perror("Failed to attach shared memory");
         exit(1);
     }
-
+    printf("Shared memory initialized with platform capacity: %d\n", MAX_PLATFORM_CAPACITY);
     // Initialize message queues
     int queue1_id = msgget(QUEUE_KEY_1, IPC_CREAT | 0666);
     int queue2_id = msgget(QUEUE_KEY_2, IPC_CREAT | 0666);
@@ -89,41 +59,33 @@ int main() {
         exit(1);
     }
 
+    char cashier_id[10], queue_id[10], shmid_str[10];
+    sprintf(shmid_str, "%d", shmid);
     // Create cashier processes
     pid_t cashier1_pid = fork();
     if (cashier1_pid == 0) {
-        run_cashier(1, queue1_id, shared_data);
-        exit(0);
+        sprintf(cashier_id, "%d", 1);
+        sprintf(queue_id, "%d", queue1_id);
+        execl("./bin/cashier", "cashier", cashier_id, queue_id, NULL);
+        perror("Failed to create cashier 1");
+        exit(EXIT_FAILURE);
     }
 
     pid_t cashier2_pid = fork();
     if (cashier2_pid == 0) {
-        run_cashier(2, queue2_id, shared_data);
-        exit(0);
+        sprintf(cashier_id, "%d", 2);
+        sprintf(queue_id, "%d", queue2_id);
+        execl("./bin/cashier", "cashier", cashier_id, queue_id, NULL);
+        perror("Failed to create cashier 2");
+        exit(EXIT_FAILURE);
     }
 
     // Main loop - create skiers
-    int next_skier_id = 1;  // Counter for generating skier IDs
-    while (keep_running) {
-        if (shared_data->skier_count < MAX_SKIERS) {
-            pid_t skier_pid = create_skier_process(next_skier_id++, queue1_id, queue2_id, shared_data);
-            if (skier_pid > 0) {
-                shared_data->skiers[shared_data->skier_count++] = skier_pid;
-            }
-        }
-
-        sleep(randomInt(MIN_ARRIVAL_TIME, MAX_ARRIVAL_TIME + 1));
-
-        // Clean up finished processes
-        pid_t finished_pid;
-        while ((finished_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
-            for (int i = 0; i < shared_data->skier_count; i++) {
-                if (shared_data->skiers[i] == finished_pid) {
-                    shared_data->skiers[i] = shared_data->skiers[--shared_data->skier_count];
-                    break;
-                }
-            }
-        }
+    pid_t skier_generator = fork();
+    if (skier_generator == 0) {
+        execl("./bin/skier_generator", "skier_generator", shmid_str, NULL);
+        perror("Failed to create skier generator");
+        exit(EXIT_FAILURE);
     }
 
     printf("Sending terminate signal to all processes...\n");

@@ -8,7 +8,7 @@
 int init_shared_memory() {
     int shmid = shmget(SHM_KEY, sizeof(SharedData), IPC_CREAT | 0666);
     if (shmid != -1) {
-        SharedData* data = (SharedData*)shmat(shmid, NULL, 0);
+        SharedData* data = (SharedData*)shmat(shmid, (void*)0x12345000, 0);
         if (data != (void*)-1) {
             // Initialize data
             memset(data, 0, sizeof(SharedData));
@@ -20,8 +20,7 @@ int init_shared_memory() {
             }
             data->platform.lower_platform_count = 0;
             data->platform.upper_platform_count = 0;
-            
-            printf("Shared memory initialized with platform capacity: %d\n", MAX_PLATFORM_CAPACITY);
+        
             
             shmdt(data);
         }
@@ -30,7 +29,7 @@ int init_shared_memory() {
 }
 
 SharedData* attach_shared_memory(int shmid) {
-    return (SharedData*)shmat(shmid, NULL, 0);
+    return (SharedData*)shmat(shmid,  (void*)0x12345000, 0);
 }
 
 void detach_shared_memory(SharedData* data) {

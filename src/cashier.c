@@ -19,10 +19,16 @@ void handle_cashier_shutdown(int sig) {
     cashier_running = 0;
 }
 
-void run_cashier(int cashier_id, int queue_id, SharedData* shared_data) {
-    (void)shared_data;
+int main(int argc, char *argv[]) {
+    srand(time(NULL));
     signal(SIGTERM, handle_cashier_shutdown);
     signal(SIGINT, handle_cashier_shutdown);
+
+    if (argc != 3) {
+        printf("Wrong cashier run params\n");
+    }
+    int cashier_id = atoi(argv[1]);
+    int queue_id = atoi(argv[2]);
     
     printf("Cashier %d started working at queue %d\n", cashier_id, queue_id);
     

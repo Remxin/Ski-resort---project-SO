@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>  // dla strerror
@@ -23,99 +24,77 @@ void handle_signal(int signo) {
 // Używamy extern aby uniknąć konfliktu z main.c
 extern volatile sig_atomic_t keep_running;
 
-pid_t create_skier_process(int id, int queue1_id, int queue2_id, SharedData* shared_data) {
-    pid_t pid = fork();
+int main(int argc, char *argv[]) {
+    srand(time(NULL));
+    if (argc != 3) {
+        printf("Wrong usage of skier process\n");
+        return 1;
+    }
+    int id = atoi(argv[1]);
+    int shmid = atoi(argv[2]);
+
+    SharedData* shared_data = attach_shared_memory(shmid);
+    if (shared_data == (void*)-1) {
+        perror("Failed to attach shared memory");
+        exit(1);
+    }
+
+    // Initialize message queues
+    int queue1_id = msgget(QUEUE_KEY_1, IPC_CREAT | 0666);
+    int queue2_id = msgget(QUEUE_KEY_2, IPC_CREAT | 0666);
     
-    if (pid == 0) {  // Child process (skier)
-        Skier skier = init_skier_data(id, 0, 0, 0, 0);
-        
-        // Choose shorter queue and buy ticket
-        int queue_number = get_shorter_queue(shared_data);
-        int chosen_queue = (queue_number == 1) ? queue1_id : queue2_id;
-        printf("Skier %d choosing queue %d (ID: %d)\n", id, queue_number, chosen_queue);
-        
-        update_queue_length(shared_data, queue_number, 1);
-        
-        // Must buy ticket first
-        if (buy_ticket(&skier, chosen_queue) != 0) {
-            printf("Skier %d failed to buy ticket from queue %d\n", id, chosen_queue);
+    if (queue1_id == -1 || queue2_id == -1) {
+        perror("Failed to create message queues");
+        exit(1);
+    }
+    // Child process (skier)
+    Skier skier = init_skier_data(id, 0, 0, 0, 0);
+    printf("Skier %d, shared memory address: %p\n", id, (void*)shared_data);
+    
+    // Choose shorter queue and buy ticket
+    int queue_number = get_shorter_queue(shared_data);
+    int chosen_queue = (queue_number == 1) ? queue1_id : queue2_id;
+    printf("Skier %d choosing queue %d (ID: %d)\n", id, queue_number, chosen_queue);
+
+    // Jeśli dorosły, twórz dzieci
+    for (int i = 0; i < skier.num_children; i++) {
+        pthread_create(&skier.children[i], NULL, child_thread, NULL);
+        skier.child_ids[i] = skier.id * 1000 + i + 1;
+    }
+
+    
+    update_queue_length(shared_data, queue_number, 1);
+    
+    // Must buy ticket first
+    if (buy_ticket(&skier, chosen_queue) != 0) {
+        printf("Skier %d failed to buy ticket from queue %d\n", id, chosen_queue);
+        update_queue_length(shared_data, queue_number, -1);
+        exit(1);
+    }
+
+    for (int i = 0; i < skier.num_children; i++) {
+        if (buy_child_ticket(chosen_queue, skier.child_ids[i], randomInt(CHILD_MIN_AGE, CHILD_MAX_AGE), skier.is_vip, skier.ticket.duration) != 0) {
+            printf("Skier %d failed to buy ticket for child %d from queue %d\n", id, skier.child_ids[i], chosen_queue);
             update_queue_length(shared_data, queue_number, -1);
             exit(1);
         }
-        
-        // ... reszta kodu ...
-
-        
-        update_queue_length(shared_data, queue_number, -1);
-
-        // Jeśli dorosły, twórz dzieci
-        if (skier.age >= ADULT_MIN_AGE) {
-            int num_children = randomInt(0, MAX_CHILDREN + 1);
-            skier.num_children = num_children;
-            
-            if (num_children > 0) {
-                create_children(num_children, id, skier.is_vip, skier.ticket.duration, 
-                              queue1_id, queue2_id, shared_data);
-            }
-        }
-
-        // Próba wejścia na platformę
-        while (enter_lower_platform(&shared_data->platform, skier.id) != 0) {
-            if (!keep_running) {
-                printf("Skier %d leaving due to shutdown\n", skier.id);
-                exit(0);
-            }
-            sleep(1);
-        }
-
-        sleep(1); // Krótkie oczekiwanie przed zakończeniem
-        exit(0);
     }
     
-    return pid;
+
+    update_queue_length(shared_data, queue_number, -1);
+
+    return 0;
 }
 
-void create_children(int num_children, int parent_id, int is_vip, int parent_ticket_duration,
-                    int queue1_id, int queue2_id, SharedData* shared_data) {
-    for (int i = 0; i < num_children; i++) {
-        pid_t child_pid = fork();
-        
-        if (child_pid == 0) {  // Child process
-            Skier child = init_skier_data(parent_id * 100 + i + 1, 1, parent_id, is_vip, parent_ticket_duration);
-            
-            // Kupno biletu
-            int queue_number = get_shorter_queue(shared_data);
-            int chosen_queue = (queue_number == 1) ? queue1_id : queue2_id;
-            
-            update_queue_length(shared_data, queue_number, 1);
-            
-            if (buy_ticket(&child, chosen_queue) != 0) {
-                printf("Child %d couldn't buy ticket\n", child.id);
-                update_queue_length(shared_data, queue_number, -1);
-                exit(1);
-            }
-            
-            update_queue_length(shared_data, queue_number, -1);
-
-            while (enter_lower_platform(&shared_data->platform, child.id) != 0) {
-                if (!keep_running) {
-                    printf("Child %d leaving due to shutdown\n", child.id);
-                    exit(0);
-                }
-                sleep(1);
-            }
-
-            sleep(1); // Krótkie oczekiwanie przed zakończeniem
-            exit(0);
-        }
-    }
+void *child_thread(void *arg) {
+    (void)arg;
+    return NULL;
 }
 
 
 int buy_ticket(Skier* skier, int queue_id) {
     TicketRequest request;
     TicketResponse response;
-    
     request.mtype = 1;  // Typ żądania zawsze 1
     request.skier_id = skier->id + 1;  // ID musi być > 0 dla odpowiedzi
     request.is_child = (skier->age < ADULT_MIN_AGE);
@@ -150,6 +129,42 @@ int buy_ticket(Skier* skier, int queue_id) {
     return 0;
 }
 
+int buy_child_ticket(int queue_id, int skier_id, int skier_age, int is_vip, int ticket_duration) {
+    TicketRequest request;
+    TicketResponse response;
+    request.mtype = 1;  // Typ żądania zawsze 1
+    request.skier_id = skier_id + 1;  // ID musi być > 0 dla odpowiedzi
+    request.is_child = 1;
+    request.age = skier_age;
+    request.wants_vip = is_vip;
+    request.parent_ticket_duration = ticket_duration;
+    
+    printf("Child %d requesting ticket from queue %d\n", skier_id, queue_id);
+    
+   if (msgsnd(queue_id, &request, sizeof(TicketRequest) - sizeof(long), 0) == -1) {
+        printf("Child %d: msgsnd error for queue %d: %s\n", skier_id, queue_id, strerror(errno));
+        return 1;
+    }
+    
+    if (msgrcv(queue_id, &response, sizeof(TicketResponse) - sizeof(long), request.skier_id, 0) == -1) {
+        printf("Child %d: msgrcv error for queue %d: %s\n", skier_id, queue_id, strerror(errno));
+        return 1;
+    }
+    
+    if (response.status != 0) {
+        printf("Child %d received error status from cashier\n", skier_id);
+        return 1;
+    }
+    
+    printf("Child %d bought a %s ticket for %d hours for %.2f PLN\n", 
+           skier_id, 
+           response.ticket.type == 2 ? "VIP" : "normal",
+           response.ticket.duration,
+           response.ticket.price);
+    
+    return 0;
+}
+
 Skier init_skier_data(int id, int is_child, int parent_id, int inherit_vip, int parent_ticket_duration) {
     (void)parent_id;  // Uciszenie ostrzeżenia o nieużywanym parametrze
     
@@ -164,12 +179,14 @@ Skier init_skier_data(int id, int is_child, int parent_id, int inherit_vip, int 
         skier.parent_ticket_duration = parent_ticket_duration;
     } else {
         skier.age = randomInt(ADULT_MIN_AGE, ADULT_MAX_AGE + 1);
-        skier.num_children = 0;
+        skier.num_children = randomInt(0, MAX_CHILDREN + 1);
         skier.is_vip = random_chance(VIP_PROBABILITY);
         skier.parent_ticket_duration = 0;
     }
     
     skier.arrival_time = time(NULL);
+
+    printf("Skier age %d, is_vip %d children %d\n", skier.age, skier.is_vip, skier.num_children);
     
     return skier;
 }

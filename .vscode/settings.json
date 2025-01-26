@@ -1,5 +1,19 @@
 {
-    "files.associations": {
-        "skier.h": "c"
-    }
+  "files.associations": {
+    "*.rmd": "markdown",
+    "skier.h": "c",
+    "shared_memory.h": "c",
+    "__locale": "c",
+    "lift.h": "c",
+    "cashier.h": "c",
+    "msg.h": "c",
+    "wait.h": "c",
+    "ticket.h": "c",
+    "unistd.h": "c",
+    "stdio.h": "c",
+    "config.h": "c",
+    "utils.h": "c",
+    "skier_generator.h": "c"
+  },
+  "C_Cpp_Runner.msvcBatchPath": ""
 }
