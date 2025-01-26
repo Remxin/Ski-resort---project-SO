@@ -8,6 +8,7 @@
 typedef struct {
     int queue1_length;
     int queue2_length;
+    pthread_mutex_t queue_mutex;
     pid_t skiers[MAX_SKIERS];
     int skier_count;
     Platform platform;  // Dodajemy platformę jako część SharedData

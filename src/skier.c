@@ -38,10 +38,10 @@ int main(int argc, char *argv[]) {
         perror("Failed to attach shared memory");
         exit(1);
     }
-
+        printf("Skier %d shared memory: %p, shmid: %d\n", id, (void*)shared_data, shmid);
     // Initialize message queues
-    int queue1_id = msgget(QUEUE_KEY_1, IPC_CREAT | 0666);
-    int queue2_id = msgget(QUEUE_KEY_2, IPC_CREAT | 0666);
+    struct CheckoutQueues queues = get_queues();
+    int queue1_id = queues.queue1_id, queue2_id = queues.queue2_id;
     
     if (queue1_id == -1 || queue2_id == -1) {
         perror("Failed to create message queues");
@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
 
     
     update_queue_length(shared_data, queue_number, 1);
+    printf("Get ticket Skiet %d\n", skier.id);
     
     // Must buy ticket first
     if (buy_ticket(&skier, chosen_queue) != 0) {
@@ -72,6 +73,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+
     for (int i = 0; i < skier.num_children; i++) {
         if (buy_child_ticket(chosen_queue, skier.child_ids[i], randomInt(CHILD_MIN_AGE, CHILD_MAX_AGE), skier.is_vip, skier.ticket.duration) != 0) {
             printf("Skier %d failed to buy ticket for child %d from queue %d\n", id, skier.child_ids[i], chosen_queue);
@@ -79,7 +81,6 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
     }
-    
 
     update_queue_length(shared_data, queue_number, -1);
 
@@ -125,7 +126,6 @@ int buy_ticket(Skier* skier, int queue_id) {
            skier->ticket.type == 2 ? "VIP" : "normal",
            skier->ticket.duration,
            skier->ticket.price);
-    
     return 0;
 }
 

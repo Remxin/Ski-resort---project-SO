@@ -1,7 +1,24 @@
-#include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/msg.h>    // dla msgget
+#include <sys/types.h>  // dla key_t
+#include <sys/ipc.h>    // dla IPC_CREAT
+#include "utils.h"
+#include "config.h"
 
+struct CheckoutQueues init_queues() {
+    struct CheckoutQueues queues;
+    queues.queue1_id = msgget(QUEUE_KEY_1, IPC_CREAT | 0666);
+    queues.queue2_id = msgget(QUEUE_KEY_2, IPC_CREAT | 0666);
+    return queues;
+}
+
+struct CheckoutQueues get_queues() {
+   struct CheckoutQueues queues;
+   queues.queue1_id = msgget(QUEUE_KEY_1, 0666);
+   queues.queue2_id = msgget(QUEUE_KEY_2, 0666);
+   return queues;
+}
 
 int randomInt(int min, int max) {
      if (min >= max) {

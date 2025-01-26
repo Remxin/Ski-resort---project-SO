@@ -37,23 +37,22 @@ int main() {
         exit(1);
     }
     printf("Shared memory initialized with platform capacity: %d\n", MAX_PLATFORM_CAPACITY);
-    // Initialize message queues
-    int queue1_id = msgget(QUEUE_KEY_1, IPC_CREAT | 0666);
-    int queue2_id = msgget(QUEUE_KEY_2, IPC_CREAT | 0666);
+    printf("Main process shared memory: %p\n", (void*)shared_data);
+    struct CheckoutQueues queues = init_queues();
     
-    if (queue1_id == -1 || queue2_id == -1) {
+    if (queues.queue1_id == -1 || queues.queue2_id == -1) {
         perror("Failed to create message queues");
         exit(1);
     }
 
-    printf("Created queues with IDs: queue1=%d, queue2=%d\n", queue1_id, queue2_id);
+    printf("Created queues with IDs: queue1=%d, queue2=%d\n", queues.queue1_id, queues.queue2_id);
 
     // Initialize platform
     if (init_platform() == NULL) {
         printf("Failed to initialize platform\n");
         // Cleanup
-        msgctl(queue1_id, IPC_RMID, NULL);
-        msgctl(queue2_id, IPC_RMID, NULL);
+        msgctl(queues.queue1_id, IPC_RMID, NULL);
+        msgctl(queues.queue2_id, IPC_RMID, NULL);
         detach_shared_memory(shared_data);
         remove_shared_memory(shmid);
         exit(1);
@@ -65,7 +64,7 @@ int main() {
     pid_t cashier1_pid = fork();
     if (cashier1_pid == 0) {
         sprintf(cashier_id, "%d", 1);
-        sprintf(queue_id, "%d", queue1_id);
+        sprintf(queue_id, "%d", queues.queue1_id);
         execl("./bin/cashier", "cashier", cashier_id, queue_id, NULL);
         perror("Failed to create cashier 1");
         exit(EXIT_FAILURE);
@@ -74,7 +73,7 @@ int main() {
     pid_t cashier2_pid = fork();
     if (cashier2_pid == 0) {
         sprintf(cashier_id, "%d", 2);
-        sprintf(queue_id, "%d", queue2_id);
+        sprintf(queue_id, "%d", queues.queue2_id);
         execl("./bin/cashier", "cashier", cashier_id, queue_id, NULL);
         perror("Failed to create cashier 2");
         exit(EXIT_FAILURE);
@@ -86,6 +85,10 @@ int main() {
         execl("./bin/skier_generator", "skier_generator", shmid_str, NULL);
         perror("Failed to create skier generator");
         exit(EXIT_FAILURE);
+    }
+
+    while (keep_running) {
+        sleep(1);
     }
 
     printf("Sending terminate signal to all processes...\n");
@@ -106,7 +109,7 @@ int main() {
     // Cleanup resources
     detach_shared_memory(shared_data);
     remove_shared_memory(shmid);
-    cleanup_ticket_queues(queue1_id, queue2_id);
+    cleanup_ticket_queues(queues.queue1_id, queues.queue2_id);
     
     printf("Cleanup complete\n");
     return 0;

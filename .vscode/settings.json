@@ -13,7 +13,9 @@
     "stdio.h": "c",
     "config.h": "c",
     "utils.h": "c",
-    "skier_generator.h": "c"
+    "skier_generator.h": "c",
+    "stdbool.h": "c",
+    "ipc.h": "c"
   },
   "C_Cpp_Runner.msvcBatchPath": ""
 }
