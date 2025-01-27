@@ -190,3 +190,17 @@ Skier init_skier_data(int id, int is_child, int parent_id, int inherit_vip, int 
     
     return skier;
 }
+
+void report_ticket(Skier* skier, int times_used) {
+    FILE *file = fopen(TICKET_REPORT_FILE, "a");
+    if (file == NULL) {
+        perror("Cannot open file for adding ticket reports");
+        return;
+    }
+    char type[6];
+    char reduced[3];
+    strcpy(type, skier->is_vip ? "VIP" : "normal");
+    strcpy(reduced, skier->age < ADULT_MIN_AGE ? "YES" : "NO");
+    fprintf(file, "Ticket ID: %d, type: %s, reduced: %s,\t\tused %d times\n", skier->id, type, reduced, times_used);
+    fclose(file);
+}

@@ -48,4 +48,7 @@
 // VIP probability
 #define VIP_PROBABILITY 0.2
 
+// REPORT FILE
+#define TICKET_REPORT_FILE "./reports/ticket_report.txt"
+
 #endif

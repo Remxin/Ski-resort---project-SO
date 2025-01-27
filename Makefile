@@ -45,11 +45,11 @@ $(SKIER_GENERATOR_EXEC): $(SKIER_GENERATOR_OBJ)
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-run: $(EXEC)
-	./$(BIN_DIR)/$(EXEC)
+run: $(MAIN_EXEC)
+	./$(BIN_DIR)/$(MAIN_EXEC)
 
 # Clean
 clean:
 	rm -rf $(BUILD_DIR)/*.o $(BIN_DIR)/*
 
-.PHONY: all clean
+.PHONY: all clean run
