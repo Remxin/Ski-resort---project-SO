@@ -21,6 +21,10 @@ int init_shared_memory() {
             for(int i = 0; i < 4; i++) {
                 sem_init(&data->platform.lower_gates[i], 1, 1);
             }
+            data->is_running = 1;
+            data->is_paused = 0;
+            data->lower_ready = 1;
+            data->upper_ready = 1;
             data->platform.lower_platform_count = 0;
             data->platform.upper_platform_count = 0;
 

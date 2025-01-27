@@ -40,6 +40,10 @@
 #define NUM_LOWER_GATES 4
 #define NUM_UPPER_EXITS 2
 
+// Lift configuration
+#define MAX_CHAIRS 80
+#define WAIT_FOR_CHAIR 3 
+
 // IPC keys
 #define SHM_KEY 12345
 #define QUEUE_KEY_1 12346

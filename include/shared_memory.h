@@ -11,6 +11,11 @@ typedef struct {
     pthread_mutex_t queue_mutex;
     pid_t skiers[MAX_SKIERS];
     int skier_count;
+    int is_running;
+    int is_paused;
+    int chair_array[MAX_CHAIRS];
+    int lower_ready;
+    int upper_ready;
     Platform platform;  // Dodajemy platformę jako część SharedData
 } SharedData;
 

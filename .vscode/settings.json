@@ -15,7 +15,10 @@
     "utils.h": "c",
     "skier_generator.h": "c",
     "stdbool.h": "c",
-    "ipc.h": "c"
+    "ipc.h": "c",
+    "worker2.h": "c",
+    "signal.h": "c",
+    "worker1.h": "c"
   },
   "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.cCompilerPath": "clang",

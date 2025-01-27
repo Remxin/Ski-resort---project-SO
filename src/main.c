@@ -8,7 +8,8 @@
 #include "shared_memory.h"
 #include "config.h"
 #include "utils.h"
-#include "worker.h"
+#include "worker1.h"
+#include "worker2.h"
 
 volatile sig_atomic_t keep_running = 1;
 
@@ -79,6 +80,20 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    pid_t worker1_pid = fork();
+    if (worker1_pid == 0) {
+        execl("./bin/worker1", "worker1", NULL);
+        perror("Failed to create worker 1");
+        exit(EXIT_FAILURE);
+    }
+
+     pid_t worker2_pid = fork();
+    if (worker2_pid == 0) {
+        execl("./bin/worker2", "worker2", NULL);
+        perror("Failed to create worker 2");
+        exit(EXIT_FAILURE);
+    }
+
     // Main loop - create skiers
     pid_t skier_generator = fork();
     if (skier_generator == 0) {
@@ -96,6 +111,8 @@ int main() {
     // Terminate cashier processes
     kill(cashier1_pid, SIGTERM);
     kill(cashier2_pid, SIGTERM);
+    kill(worker1_pid, SIGTERM);
+    kill(worker2_pid, SIGTERM);
 
     // Terminate all skier processes
     for (int i = 0; i < shared_data->skier_count; i++) {
