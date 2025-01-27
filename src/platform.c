@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "platform.h"
+#include "utils.h"
 
 Platform* init_platform() {
     Platform* platform = malloc(sizeof(Platform));
@@ -44,32 +45,61 @@ Platform* init_platform() {
     return platform;
 }
 
-int enter_lower_platform(Platform* platform, int skier_id) {
+int enter_lower_platform(Platform* platform, int skier_id, int is_vip, int num_child) {
     int current_value;
     sem_getvalue(&platform->platform_capacity, &current_value);
     printf("Skier %d trying to enter. Current platform capacity: %d\n", skier_id, current_value);
+
+    // Sprawdź miejsce dla rodzica i dzieci
+    if (sem_wait(&platform->platform_capacity) == -1) {
+        perror("sem_wait platform_capacity failed");
+        return -1;
+    }
     
-    if (sem_wait(&platform->platform_capacity) == 0) {
-        int gate = rand() % 4;
-        
-        if (sem_wait(&platform->lower_gates[gate]) == 0) {
-            platform->lower_platform_count++;
-            printf("Skier %d successfully entered through gate %d. Total on platform: %d\n", 
-                   skier_id, gate, platform->lower_platform_count);
-            sem_post(&platform->lower_gates[gate]);
-            return 0;
+    // Jeśli są dzieci, zajmij dla nich miejsca
+    for(int i = 0; i < num_child; i++) {
+        if (sem_wait(&platform->platform_capacity) == -1) {
+            // W przypadku błędu, zwolnij zajęte wcześniej miejsca
+            for(int j = 0; j <= i; j++) {
+                sem_post(&platform->platform_capacity);
+            }
+            perror("sem_wait platform_capacity failed for children");
+            return -1;
         }
+    }
+
+    // Wybór bramki: 0 dla VIP, losowa 1-3 dla zwykłych
+    int gate = is_vip ? 0 : randomInt(1, 3);
+    
+    if (sem_wait(&platform->lower_gates[gate]) == -1) {
+        // W przypadku błędu na bramce, zwolnij wszystkie zajęte miejsca
+        for(int i = 0; i < (1 + num_child); i++) {
+            sem_post(&platform->platform_capacity);
+        }
+        perror("sem_wait lower_gates failed");
+        return -1;
+    }
+
+    // Aktualizacja licznika osób
+    platform->lower_platform_count += (1 + num_child);
+    printf("Skier %d successfully entered through gate %d with %d children. Total on platform: %d\n",
+           skier_id, gate, num_child, platform->lower_platform_count);
+    
+    sem_post(&platform->lower_gates[gate]);
+    return 0;
+}
+
+void exit_lower_platform(Platform* platform, int num_child) {
+    // Zmniejsz licznik o rodzica i dzieci
+    platform->lower_platform_count -= (1 + num_child);
+    
+    // Zwolnij miejsce dla rodzica i każdego dziecka
+    for(int i = 0; i < (1 + num_child); i++) {
         sem_post(&platform->platform_capacity);
     }
     
-    printf("Skier %d failed to enter platform\n", skier_id);
-    return -1;
-}
-
-void exit_lower_platform(Platform* platform) {
-    platform->lower_platform_count--;
-    sem_post(&platform->platform_capacity);
-    printf("A skier left the platform. Total remaining: %d\n", platform->lower_platform_count);
+    printf("A skier with %d children left the platform. Total remaining: %d\n", 
+           num_child, platform->lower_platform_count);
 }
 
 void cleanup_platform(Platform* platform) {

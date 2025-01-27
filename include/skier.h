@@ -33,5 +33,8 @@ Skier init_skier_data(int id, int is_child, int parent_id, int inherit_vip, int 
 int buy_ticket(Skier* skier, int queue_id);
 int buy_child_ticket(int queue_id, int skier_id, int skier_age, int is_vip, int ticket_duration);
 
+void end_skier(Skier* skier, int times_used);
+void report_ticket(Skier* skier, int times_used);
+
 void *child_thread(void *arg);
 #endif

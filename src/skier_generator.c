@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Random delay between new skiers
-        sleep(1);
+        sleep(3);
 
         // Clean up finished processes
         pid_t finished_pid;

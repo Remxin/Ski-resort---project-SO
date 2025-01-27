@@ -38,7 +38,6 @@ int main(int argc, char *argv[]) {
         perror("Failed to attach shared memory");
         exit(1);
     }
-        printf("Skier %d shared memory: %p, shmid: %d\n", id, (void*)shared_data, shmid);
     // Initialize message queues
     struct CheckoutQueues queues = get_queues();
     int queue1_id = queues.queue1_id, queue2_id = queues.queue2_id;
@@ -49,7 +48,6 @@ int main(int argc, char *argv[]) {
     }
     // Child process (skier)
     Skier skier = init_skier_data(id, 0, 0, 0, 0);
-    printf("Skier %d, shared memory address: %p\n", id, (void*)shared_data);
     
     // Choose shorter queue and buy ticket
     int queue_number = get_shorter_queue(shared_data);
@@ -64,7 +62,6 @@ int main(int argc, char *argv[]) {
 
     
     update_queue_length(shared_data, queue_number, 1);
-    printf("Get ticket Skiet %d\n", skier.id);
     
     // Must buy ticket first
     if (buy_ticket(&skier, chosen_queue) != 0) {
@@ -83,6 +80,14 @@ int main(int argc, char *argv[]) {
     }
 
     update_queue_length(shared_data, queue_number, -1);
+    time_t time_now = time(NULL);
+
+    
+    while (skier.ticket.valid_until >= time_now) {
+        enter_lower_platform(&shared_data->platform, skier.id, skier.is_vip, skier.num_children);
+        sleep(5);
+        exit_lower_platform(&shared_data->platform, skier.num_children);
+    }
 
     return 0;
 }
@@ -191,6 +196,15 @@ Skier init_skier_data(int id, int is_child, int parent_id, int inherit_vip, int 
     return skier;
 }
 
+void end_skier(Skier* skier, int times_used) {
+    if (skier->num_children > 0) {
+        for (int i = 0; i < skier->num_children; i++) {
+            pthread_join(skier->children[i], NULL);
+        }
+    }
+    report_ticket(skier, times_used);
+}
+
 void report_ticket(Skier* skier, int times_used) {
     FILE *file = fopen(TICKET_REPORT_FILE, "a");
     if (file == NULL) {
@@ -202,5 +216,8 @@ void report_ticket(Skier* skier, int times_used) {
     strcpy(type, skier->is_vip ? "VIP" : "normal");
     strcpy(reduced, skier->age < ADULT_MIN_AGE ? "YES" : "NO");
     fprintf(file, "Ticket ID: %d, type: %s, reduced: %s,\t\tused %d times\n", skier->id, type, reduced, times_used);
+    for (int i = 0; i < skier->num_children; i++) {
+        fprintf(file, "Ticket ID: %d, type: %s, reduced: %s,\t\tused %d times\n", skier->child_ids[i], type, reduced, times_used);
+    }
     fclose(file);
 }

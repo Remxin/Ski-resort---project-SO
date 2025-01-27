@@ -52,8 +52,6 @@ void remove_shared_memory(int shmid) {
 
 int get_shorter_queue(SharedData* data) {
 
-    printf("Queue lengths - Q1: %d, Q2: %d\n", data->queue1_length, data->queue2_length);
-
     if (data->queue1_length <= data->queue2_length) {
         return 1;
     }
@@ -62,9 +60,6 @@ int get_shorter_queue(SharedData* data) {
 
 void update_queue_length(SharedData* data, int queue_number, int delta) {
      pthread_mutex_lock(&data->queue_mutex);
-     printf("Update queue %d by %d - Before: Q1=%d, Q2=%d, addr=%p\n", 
-        queue_number, delta, data->queue1_length, data->queue2_length, (void*)data);
-
     if (queue_number == 1) {
         data->queue1_length += delta;
         if (data->queue1_length < 0) data->queue1_length = 0;

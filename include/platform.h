@@ -16,10 +16,10 @@ typedef struct {
 Platform* init_platform();
 
 // Próba wejścia na dolny peron przez bramkę
-int enter_lower_platform(Platform* platform, int skier_id);
+int enter_lower_platform(Platform* platform, int skier_id, int is_vip, int num_child);
 
 // Wyjście z dolnego peronu (wjazd na górę)
-void exit_lower_platform(Platform* platform);
+void exit_lower_platform(Platform* platform, int num_child);
 
 // Wejście na górny peron (przyjazd z dołu)
 void enter_upper_platform(Platform* platform);
