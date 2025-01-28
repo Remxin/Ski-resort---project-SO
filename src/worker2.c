@@ -28,7 +28,7 @@ int main() {
 
     while(shm_ptr->is_running && worker_running) {
         if (!shm_ptr->is_paused) {
-            sleep(WAIT_FOR_CHAIR);
+            // sleep(WAIT_FOR_CHAIR);
 
             // Sprawdź czy są narciarze na krzesełku do rozładowania
             if (shm_ptr->chair_array[chair_index] > 0) {
@@ -57,18 +57,19 @@ int main() {
 }
 
 void sig_handler(int sig) {
+    
     if (sig == SIGUSR1) {
-        printf("Worker2: Pausing lift\n");
+        printf("\033[31mWorker2: Pausing lift\033[0m\n");
         shm_ptr->upper_ready = 0;
         shm_ptr->lower_ready = 0;
         shm_ptr->is_paused = 1;
     }
     else if (sig == SIGUSR2) {
-        printf("Worker2: Ready to resume work\n");
+        printf("\033[31mWorker2: Ready to resume work\033[0m\n");
         shm_ptr->upper_ready = 1;
         while(1) {
             if(shm_ptr->lower_ready) {
-                printf("Worker2: Lift resuming work\n");
+                printf("\033[31mWorker2: Lift resuming work\033[0m\n");
                 shm_ptr->is_paused = 0;
                 break;
             }

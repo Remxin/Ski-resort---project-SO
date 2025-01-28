@@ -3,7 +3,7 @@
 
 // Station config
 #define OPEN_TIME 12 // 12 hours
-#define MIN_TO_HOUR 0.01 // 60 for full hour
+#define MIN_TO_HOUR 1 // 60 for full hour
 
 // Track slide down
 #define T1_SLIDE_TIME 10

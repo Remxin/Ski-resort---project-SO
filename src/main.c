@@ -138,10 +138,8 @@ int main() {
     kill(worker2_pid, SIGTERM);
 
     // Terminate all skier processes
-    // for (int i = 0; i < shared_data->skier_count; i++) {
-    //     kill(shared_data->skiers[i], SIGTERM);
-    // }
     kill(skier_generator, SIGTERM);
+
     // Wait for all processes to finish
     printf("Waiting for processes to finish...\n");
     while (wait(NULL) > 0);
