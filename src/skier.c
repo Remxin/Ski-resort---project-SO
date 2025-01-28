@@ -107,7 +107,6 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < 1 + skier.num_children; i++) {
             sem_wait(&platform->exit_chair_queue);
         } 
-        // sleep(LIFT_TIME);
         int chosen_track = randomInt(0,2);
         int slide_time = tracks[chosen_track];
         printf("\033[32mSkier %d with children %d is sliding down track %d\033[0m\n", skier.id, skier.num_children, chosen_track);
@@ -141,12 +140,10 @@ void get_into_lift_queue(Platform* platform, Skier* skier) {
     }
     for (int i = 0; i < total_count; i++) {
         sem_wait(&platform->chair_queue);
-        // sem_post(&platform->platform_capacity);
     }
     printf("\033[32mSkier %d with child %d loaded (queue_value: %d)\033[0m\n", 
             skier->id, skier->num_children, queue_value - total_count);
     pthread_mutex_unlock(&platform->queue_mutex);
-    // sem_wait(&platform->platform_capacity);
     // printf("Skier %d with child %d entered\n", skier->id, skier->num_children);
     return;
     

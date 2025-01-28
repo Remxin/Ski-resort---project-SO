@@ -1,6 +1,10 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// Station config
+#define OPEN_TIME 12 // 12 hours
+#define MIN_TO_HOUR 0.01 // 60 for full hour
+
 // Track slide down
 #define T1_SLIDE_TIME 10
 #define T2_SLIDE_TIME 12
