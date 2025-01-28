@@ -2,6 +2,9 @@
 #include <sys/shm.h>
 #include <sys/ipc.h>
 #include <string.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include "shared_memory.h"
 
 
@@ -18,11 +21,22 @@ int init_shared_memory() {
             for(int i = 0; i < 4; i++) {
                 sem_init(&data->platform.lower_gates[i], 1, 1);
             }
+            sem_init(&data->platform.chair_queue, 1, CHAIR_SIZE);
+            sem_init(&data->platform.exit_chair_queue, 1, 0);
+            data->is_running = 1;
+            data->is_paused = 0;
+            data->lower_ready = 1;
+            data->upper_ready = 1;
             data->platform.lower_platform_count = 0;
             data->platform.upper_platform_count = 0;
-            
-            printf("Shared memory initialized with platform capacity: %d\n", MAX_PLATFORM_CAPACITY);
-            
+
+            pthread_mutexattr_t attr;
+            pthread_mutexattr_init(&attr);
+            pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+            pthread_mutex_init(&data->queue_mutex, &attr);
+            pthread_mutex_init(&data->platform.queue_mutex, &attr);
+            pthread_mutexattr_destroy(&attr);
+                    
             shmdt(data);
         }
     }
@@ -30,7 +44,7 @@ int init_shared_memory() {
 }
 
 SharedData* attach_shared_memory(int shmid) {
-    return (SharedData*)shmat(shmid, NULL, 0);
+    return (SharedData*)shmat(shmid,  NULL, 0);
 }
 
 void detach_shared_memory(SharedData* data) {
@@ -44,6 +58,7 @@ void remove_shared_memory(int shmid) {
 }
 
 int get_shorter_queue(SharedData* data) {
+
     if (data->queue1_length <= data->queue2_length) {
         return 1;
     }
@@ -51,6 +66,7 @@ int get_shorter_queue(SharedData* data) {
 }
 
 void update_queue_length(SharedData* data, int queue_number, int delta) {
+     pthread_mutex_lock(&data->queue_mutex);
     if (queue_number == 1) {
         data->queue1_length += delta;
         if (data->queue1_length < 0) data->queue1_length = 0;
@@ -58,4 +74,6 @@ void update_queue_length(SharedData* data, int queue_number, int delta) {
         data->queue2_length += delta;
         if (data->queue2_length < 0) data->queue2_length = 0;
     }
+
+    pthread_mutex_unlock(&data->queue_mutex);
 }

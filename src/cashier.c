@@ -19,12 +19,18 @@ void handle_cashier_shutdown(int sig) {
     cashier_running = 0;
 }
 
-void run_cashier(int cashier_id, int queue_id, SharedData* shared_data) {
-    (void)shared_data;
+int main(int argc, char *argv[]) {
+    srand(time(NULL));
     signal(SIGTERM, handle_cashier_shutdown);
     signal(SIGINT, handle_cashier_shutdown);
+
+    if (argc != 3) {
+        printf("Wrong cashier run params\n");
+    }
+    int cashier_id = atoi(argv[1]);
+    int queue_id = atoi(argv[2]);
     
-    printf("Cashier %d started working at queue %d\n", cashier_id, queue_id);
+    printf("\033[32m\033[44mCashier %d started working at queue %d\033[0m\n", cashier_id, queue_id);
     
     while (cashier_running) {
         TicketRequest request;
@@ -45,7 +51,7 @@ void run_cashier(int cashier_id, int queue_id, SharedData* shared_data) {
             continue;
         }
 
-        printf("Cashier %d receiving skier %d request\n", cashier_id, request.skier_id - 1);
+        // printf("Cashier %d receiving skier %d request\n", cashier_id, request.skier_id - 1);
 
         // Set up response
         response.mtype = request.skier_id;
@@ -76,7 +82,7 @@ void run_cashier(int cashier_id, int queue_id, SharedData* shared_data) {
             continue;
         }
 
-        printf("Cashier %d: Sold %s ticket for %dh to skier %d for %.2f PLN\n",
+        printf("\033[36mCashier %d: Sold %s ticket for %dh to skier %d for %.2f PLN\033[0m\n",
                cashier_id,
                response.ticket.type == 2 ? "VIP" : "normal",
                response.ticket.duration,

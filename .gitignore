@@ -1,5 +1,7 @@
 bin/*
 build/*
+reports/*
 
 !bin/.gitkeep
 !build/.gitkeep
+!reports/.gitkeep

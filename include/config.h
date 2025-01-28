@@ -1,6 +1,11 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// Track slide down
+#define T1_SLIDE_TIME 10
+#define T2_SLIDE_TIME 12
+#define T3_SLIDE_TIME 15
+
 // Ticket durations (in hours)
 #define TICKET_TIME_2H 2
 #define TICKET_TIME_4H 4
@@ -40,6 +45,12 @@
 #define NUM_LOWER_GATES 4
 #define NUM_UPPER_EXITS 2
 
+// Lift configuration
+#define MAX_CHAIRS 80
+#define CHAIR_SIZE 3
+#define WAIT_FOR_CHAIR 1
+#define LIFT_TIME 3
+
 // IPC keys
 #define SHM_KEY 12345
 #define QUEUE_KEY_1 12346
@@ -47,5 +58,8 @@
 
 // VIP probability
 #define VIP_PROBABILITY 0.2
+
+// REPORT FILE
+#define TICKET_REPORT_FILE "./reports/ticket_report.txt"
 
 #endif
