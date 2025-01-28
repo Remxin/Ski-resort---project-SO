@@ -104,6 +104,9 @@ int main(int argc, char *argv[]) {
         printf("\033[32mSkier %d with %d children left the platform. Total remaining: %d\033[0m\n", skier.id,
         skier.num_children, platform->lower_platform_count - (1+skier.num_children));
 
+        for (int i = 0; i < 1 + skier.num_children; i++) {
+            sem_wait(&platform->exit_chair_queue);
+        } 
         // sleep(LIFT_TIME);
         int chosen_track = randomInt(0,2);
         int slide_time = tracks[chosen_track];

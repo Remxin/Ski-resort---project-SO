@@ -4,7 +4,7 @@
 SharedData* shm_ptr;
 
 int main() {
-    printf("Worker2: Start working\n");
+    printf("\033[35m\033[45mWorker2: Start working\033[0m\n");
     signal(SIGINT, SIG_IGN);
     signal(SIGUSR1, sig_handler);
     signal(SIGUSR2, sig_handler);
@@ -33,12 +33,12 @@ int main() {
                 skiers_on_chair = shm_ptr->chair_array[chair_index];
                 shm_ptr->chair_array[chair_index] = 0;  // opróżnij krzesełko
                 
-                printf("Worker2: unloaded chair %d with %d skiers\n", 
+                printf("\033[35mWorker2: unloaded chair %d with %d skiers\033[0m\n", 
                        chair_index, skiers_on_chair);
                 
                 // Pozwól narciarzom zjechać - dodaj wejścia na dolny peron
                 for(int i = 0; i < skiers_on_chair; i++) {
-                    sem_post(&platform->lower_gates[i % 4]);  // rozprowadź po bramkach
+                    sem_post(&platform->exit_chair_queue);
                 }
             }
 

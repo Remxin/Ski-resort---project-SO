@@ -22,6 +22,7 @@ int init_shared_memory() {
                 sem_init(&data->platform.lower_gates[i], 1, 1);
             }
             sem_init(&data->platform.chair_queue, 1, CHAIR_SIZE);
+            sem_init(&data->platform.exit_chair_queue, 1, 0);
             data->is_running = 1;
             data->is_paused = 0;
             data->lower_ready = 1;
