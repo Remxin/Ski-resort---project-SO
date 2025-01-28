@@ -28,7 +28,7 @@ int main() {
 
     while(shm_ptr->is_running && worker_running) {
         if (!shm_ptr->is_paused) {
-            // sleep(WAIT_FOR_CHAIR);
+            sleep(WAIT_FOR_CHAIR);
 
             // Sprawdź czy są narciarze na krzesełku do rozładowania
             if (shm_ptr->chair_array[chair_index] > 0) {

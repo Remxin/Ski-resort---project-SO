@@ -36,7 +36,7 @@ int main() {
             usleep(100000);
             continue;
         }
-        // sleep(WAIT_FOR_CHAIR);
+        sleep(WAIT_FOR_CHAIR);
         pthread_mutex_lock(&platform->queue_mutex);
         
          if (platform->lower_platform_count > 0) {
@@ -59,6 +59,9 @@ int main() {
                 // Przygotowujemy nowe krzesełko
                 for(int i = 0; i < CHAIR_SIZE; i++) {
                     sem_post(&platform->chair_queue);
+                }
+                for (int i = 0; i < skiers_on_chair; i++) {
+                    sem_post(&platform->platform_capacity);
                 }
                     
             }

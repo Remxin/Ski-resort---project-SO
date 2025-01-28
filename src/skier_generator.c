@@ -51,8 +51,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Random delay between new skiers
-        // sleep(randomInt(MIN_ARRIVAL_TIME, MAX_ARRIVAL_TIME));
-        sleep(20);
+        sleep(randomInt(MIN_ARRIVAL_TIME, MAX_ARRIVAL_TIME));
 
         // Clean up finished processes
         pid_t finished_pid;
