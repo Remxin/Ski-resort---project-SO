@@ -20,6 +20,13 @@ void handle_shutdown() {
 
 int main() {
     srand(time(NULL));
+    // Czyszczenie pliku raportu
+    FILE *file = fopen(TICKET_REPORT_FILE, "w");
+    if (file == NULL) {
+        perror("Cannot open report file for clearing");
+    } else {
+        fclose(file);
+    }
     
     // Set up signal handling
     signal(SIGINT, handle_shutdown);

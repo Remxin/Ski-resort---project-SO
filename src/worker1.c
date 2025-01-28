@@ -1,11 +1,11 @@
 #include "worker1.h"
+#include <pthread.h>
 #include "utils.h"
 
 SharedData* shm_ptr;
 
 int main() {
-
-    printf("Worker1: Start working\n");
+    printf("\033[35m\033[45mWorker1: Start working\033[0m\n");
     signal(SIGINT, SIG_IGN);
     signal(SIGUSR2, sig_handler);
     signal(SIGUSR2, sig_handler);
@@ -25,38 +25,43 @@ int main() {
 
     int chair_index = 0;
     int skiers_on_chair;
+    int queue_value;
 
     while(shm_ptr->is_running) {
         if (shm_ptr->is_paused) {
+            usleep(100000);
             continue;
         }
         sleep(WAIT_FOR_CHAIR);
+        pthread_mutex_lock(&platform->queue_mutex);
         
-        // Sprawdź ile osób może wejść (max 3)
-        for(skiers_on_chair = 0; skiers_on_chair < 3; skiers_on_chair++) {
-            if (sem_wait(&platform->upper_exits[chair_index % 2]) == -1) {
-                break;
+         if (platform->lower_platform_count > 0) {
+            sem_getvalue(&platform->chair_queue, &queue_value);
+
+            // Oblicz ile osób wsiada na krzesełko
+            if (queue_value < CHAIR_SIZE) {
+                // Obliczamy ile osób jest na krzesełku
+                skiers_on_chair = CHAIR_SIZE - queue_value;
+                
+                printf("\033[35mWorker1: Sending chair %d with %d skiers\033[0m\n", 
+                        chair_index, skiers_on_chair);
+                
+                // Zapisujemy liczbę narciarzy
+                shm_ptr->chair_array[chair_index] = skiers_on_chair;
+                
+                // Aktualizujemy licznik peronu
+                platform->lower_platform_count -= skiers_on_chair;
+                
+                // Przygotowujemy nowe krzesełko
+                for(int i = 0; i < CHAIR_SIZE; i++) {
+                    sem_post(&platform->chair_queue);
+                }
+                    
             }
         }
-
-        if (skiers_on_chair > 0) {
-            // Aktualizuj licznik platformy
-            platform->upper_platform_count -= skiers_on_chair;
-            
-            // Zapisz liczbę osób na krzesełku
-            shm_ptr->chair_array[chair_index] = skiers_on_chair;
-            
-            printf("Worker1: loaded %d skiers onto chair %d\n", 
-                skiers_on_chair, chair_index);
-            
-            // Zwolnij miejsca na platformie
-            for(int i = 0; i < skiers_on_chair; i++) {
-                sem_post(&platform->platform_capacity);
-            }
-        }
-
-        chair_index = (chair_index + 1) % MAX_CHAIRS;
+        pthread_mutex_unlock(&platform->queue_mutex);
         usleep(100000);
+        chair_index = (chair_index + 1) % MAX_CHAIRS;
         
     }
 

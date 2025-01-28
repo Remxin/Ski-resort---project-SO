@@ -21,6 +21,7 @@ int init_shared_memory() {
             for(int i = 0; i < 4; i++) {
                 sem_init(&data->platform.lower_gates[i], 1, 1);
             }
+            sem_init(&data->platform.chair_queue, 1, CHAIR_SIZE);
             data->is_running = 1;
             data->is_paused = 0;
             data->lower_ready = 1;
@@ -32,8 +33,9 @@ int init_shared_memory() {
             pthread_mutexattr_init(&attr);
             pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
             pthread_mutex_init(&data->queue_mutex, &attr);
+            pthread_mutex_init(&data->platform.queue_mutex, &attr);
+            pthread_mutexattr_destroy(&attr);
                     
-            
             shmdt(data);
         }
     }

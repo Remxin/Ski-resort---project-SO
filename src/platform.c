@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
 #include <fcntl.h>
 #include "platform.h"
 #include "utils.h"
@@ -97,9 +98,7 @@ void exit_lower_platform(Platform* platform, int num_child) {
     for(int i = 0; i < (1 + num_child); i++) {
         sem_post(&platform->platform_capacity);
     }
-    
-    printf("A skier with %d children left the platform. Total remaining: %d\n", 
-           num_child, platform->lower_platform_count);
+
 }
 
 void cleanup_platform(Platform* platform) {
@@ -112,4 +111,10 @@ void cleanup_platform(Platform* platform) {
         
         free(platform);
     }
+}
+
+void update_platform_count(Platform* platform, int delta) {
+    pthread_mutex_lock(&platform->queue_mutex);
+    platform->lower_platform_count += delta;
+    pthread_mutex_unlock(&platform->queue_mutex);
 }

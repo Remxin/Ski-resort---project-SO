@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     int cashier_id = atoi(argv[1]);
     int queue_id = atoi(argv[2]);
     
-    printf("Cashier %d started working at queue %d\n", cashier_id, queue_id);
+    printf("\033[32m\033[44mCashier %d started working at queue %d\033[0m\n", cashier_id, queue_id);
     
     while (cashier_running) {
         TicketRequest request;
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        printf("Cashier %d receiving skier %d request\n", cashier_id, request.skier_id - 1);
+        // printf("Cashier %d receiving skier %d request\n", cashier_id, request.skier_id - 1);
 
         // Set up response
         response.mtype = request.skier_id;
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        printf("Cashier %d: Sold %s ticket for %dh to skier %d for %.2f PLN\n",
+        printf("\033[36mCashier %d: Sold %s ticket for %dh to skier %d for %.2f PLN\033[0m\n",
                cashier_id,
                response.ticket.type == 2 ? "VIP" : "normal",
                response.ticket.duration,
