@@ -3,12 +3,16 @@
 #include "utils.h"
 
 SharedData* shm_ptr;
+static volatile sig_atomic_t worker_running = 1;
+
 
 int main() {
     printf("\033[35m\033[45mWorker1: Start working\033[0m\n");
-    signal(SIGINT, SIG_IGN);
+    signal(SIGINT, sig_handler);
+    signal(SIGTERM, sig_handler);
     signal(SIGUSR2, sig_handler);
     signal(SIGUSR2, sig_handler);
+
 
     int shmid = shmget(SHM_KEY, sizeof(SharedData), 0666);
     if (shmid == -1) {
@@ -27,7 +31,7 @@ int main() {
     int skiers_on_chair;
     int queue_value;
 
-    while(shm_ptr->is_running) {
+    while(shm_ptr->is_running && worker_running) {
         if (shm_ptr->is_paused) {
             usleep(100000);
             continue;
@@ -65,7 +69,7 @@ int main() {
         
     }
 
-    printf("Worker1: Finished working\n");
+    printf("\033[35m\033[45mWorker1: Finished working\033[0m\n");
     shmdt(shm_ptr);
     return 0;
 }
@@ -88,5 +92,7 @@ void sig_handler(int sig) {
             }
             usleep(100000);
         }
+    } else if (sig == SIGINT || sig == SIGTERM) {
+        worker_running = 0;
     }
 }

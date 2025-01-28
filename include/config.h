@@ -37,8 +37,8 @@
 // Timing configurations (in seconds)
 #define MIN_SERVICE_TIME 1
 #define MAX_SERVICE_TIME 3
-#define MIN_ARRIVAL_TIME 3
-#define MAX_ARRIVAL_TIME 10
+#define MIN_ARRIVAL_TIME 1
+#define MAX_ARRIVAL_TIME 3
 
 // Platform configuration
 #define MAX_PLATFORM_CAPACITY 80

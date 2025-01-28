@@ -18,7 +18,8 @@
     "ipc.h": "c",
     "worker2.h": "c",
     "signal.h": "c",
-    "worker1.h": "c"
+    "worker1.h": "c",
+    "string.h": "c"
   },
   "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.cCompilerPath": "clang",

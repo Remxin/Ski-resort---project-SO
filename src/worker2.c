@@ -2,10 +2,12 @@
 #include "config.h"
 
 SharedData* shm_ptr;
+static volatile sig_atomic_t worker_running = 1;
 
 int main() {
     printf("\033[35m\033[45mWorker2: Start working\033[0m\n");
-    signal(SIGINT, SIG_IGN);
+    signal(SIGINT, sig_handler);
+    signal(SIGTERM, sig_handler);
     signal(SIGUSR1, sig_handler);
     signal(SIGUSR2, sig_handler);
     
@@ -24,7 +26,7 @@ int main() {
     int chair_index = MAX_CHAIRS / 2;  // zaczynamy od połowy krzesełek
     int skiers_on_chair;
 
-    while(shm_ptr->is_running) {
+    while(shm_ptr->is_running && worker_running) {
         if (!shm_ptr->is_paused) {
             sleep(WAIT_FOR_CHAIR);
 
@@ -49,7 +51,7 @@ int main() {
         }
     }
 
-    printf("Worker2: Finished working\n");
+    printf("\033[35m\033[45mWorker2: Finished working\033[0m\n");
     shmdt(shm_ptr);
     return 0;
 }
@@ -72,5 +74,7 @@ void sig_handler(int sig) {
             }
             usleep(100000);
         }
+    } else if (sig == SIGINT || sig == SIGTERM) {
+        worker_running = 0;
     }
 }
