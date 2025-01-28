@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/msg.h>
+#include <time.h>
 #include "ticket.h"
 #include "shared_memory.h"
 #include "config.h"
@@ -31,6 +32,9 @@ int main() {
     // Set up signal handling
     signal(SIGINT, handle_shutdown);
     signal(SIGTERM, handle_shutdown);
+
+    // Set open time
+    time_t open_time = time(NULL);
     
     // Initialize shared memory
     int shmid = init_shared_memory();
@@ -109,7 +113,19 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    while (keep_running) {
+    time_t current_time = time(NULL);
+    while (1) {
+        if (!keep_running) {
+            printf("Ending program due to process terminate\n");
+            break;
+        } 
+        current_time = time(NULL);
+        if (difftime(current_time, open_time) >= OPEN_TIME * 60 * MIN_TO_HOUR) {
+            printf("Ending program: %f seconds from opening\n", 
+            difftime(current_time, open_time));
+            break; // Wyjście z pętli
+        }
+
         sleep(1);
     }
 
@@ -122,10 +138,8 @@ int main() {
     kill(worker2_pid, SIGTERM);
 
     // Terminate all skier processes
-    for (int i = 0; i < shared_data->skier_count; i++) {
-        kill(shared_data->skiers[i], SIGTERM);
-    }
-    
+    kill(skier_generator, SIGTERM);
+
     // Wait for all processes to finish
     printf("Waiting for processes to finish...\n");
     while (wait(NULL) > 0);

@@ -19,6 +19,8 @@ int main(int argc, char *argv[]) {
         perror("Wrong argument cound at skier_generator");
         exit(1);
     }
+    signal(SIGINT, handle_shutdown);
+    signal(SIGTERM, handle_shutdown);
     srand(time(NULL));
     // first skier id and char arr to convert int to chr
     int skier_id = 1;
@@ -32,7 +34,8 @@ int main(int argc, char *argv[]) {
         perror("Failed to attach shared memory");
         exit(1);
     }
-    
+
+    printf("\033[35m\033[45mSkier Generator: Start working\033[0m\n");
     while (keep_running) {
         if (shared_data->skier_count < MAX_SKIERS) {
             sprintf(skier_id_chr, "%d", skier_id);
@@ -48,7 +51,8 @@ int main(int argc, char *argv[]) {
         }
 
         // Random delay between new skiers
-        sleep(1);
+        // sleep(randomInt(MIN_ARRIVAL_TIME, MAX_ARRIVAL_TIME));
+        sleep(20);
 
         // Clean up finished processes
         pid_t finished_pid;
@@ -61,6 +65,11 @@ int main(int argc, char *argv[]) {
             }
         }
     }
+    for (int i = 0; i < shared_data->skier_count; i++) {
+        kill(shared_data->skiers[i], SIGTERM);
+    }
+
+    printf("\033[35m\033[45mSkier Generator: Finished working\033[0m\n");
     
     exit(0);
 }

@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
     while (skier.ticket.valid_until >= time_now) {
         enter_lower_platform(&shared_data->platform, skier.id, skier.is_vip, skier.num_children);
         total_slides++;
-        get_into_lift_queue(platform, &skier);
+        get_into_lift_queue(shared_data, &skier);
             
         // Wsiada na krzesełko
         printf("\033[32mSkier %d with %d children left the platform. Total remaining: %d\033[0m\n", skier.id,
@@ -107,7 +107,6 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < 1 + skier.num_children; i++) {
             sem_wait(&platform->exit_chair_queue);
         } 
-        // sleep(LIFT_TIME);
         int chosen_track = randomInt(0,2);
         int slide_time = tracks[chosen_track];
         printf("\033[32mSkier %d with children %d is sliding down track %d\033[0m\n", skier.id, skier.num_children, chosen_track);
@@ -118,6 +117,7 @@ int main(int argc, char *argv[]) {
     report_ticket(&skier, total_slides);
     
     return 0;
+    
 }
 
 void *child_thread(void *arg) {
@@ -125,7 +125,11 @@ void *child_thread(void *arg) {
     return NULL;
 }
 
-void get_into_lift_queue(Platform* platform, Skier* skier) {
+void get_into_lift_queue(SharedData* sharedData, Skier* skier) {
+    while (sharedData->is_paused) {
+        usleep(100000);
+    }
+    Platform* platform = &sharedData->platform;
     pthread_mutex_lock(&platform->queue_mutex);
     printf("Skier %d with child %d entering lift queue\n", skier->id, skier->num_children);
     int queue_value;
@@ -136,17 +140,15 @@ void get_into_lift_queue(Platform* platform, Skier* skier) {
         printf("Skier %d with child %d failed to enter lift queue\n", skier->id, skier->num_children);
         pthread_mutex_unlock(&platform->queue_mutex);
         usleep(500000);
-        get_into_lift_queue(platform, skier);
+        get_into_lift_queue(sharedData, skier);
         return;
     }
     for (int i = 0; i < total_count; i++) {
         sem_wait(&platform->chair_queue);
-        // sem_post(&platform->platform_capacity);
     }
     printf("\033[32mSkier %d with child %d loaded (queue_value: %d)\033[0m\n", 
             skier->id, skier->num_children, queue_value - total_count);
     pthread_mutex_unlock(&platform->queue_mutex);
-    // sem_wait(&platform->platform_capacity);
     // printf("Skier %d with child %d entered\n", skier->id, skier->num_children);
     return;
     

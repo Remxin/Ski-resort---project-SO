@@ -1,6 +1,10 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// Station config
+#define OPEN_TIME 12 // 12 hours
+#define MIN_TO_HOUR 1 // 60 for full hour
+
 // Track slide down
 #define T1_SLIDE_TIME 10
 #define T2_SLIDE_TIME 12
@@ -37,8 +41,8 @@
 // Timing configurations (in seconds)
 #define MIN_SERVICE_TIME 1
 #define MAX_SERVICE_TIME 3
-#define MIN_ARRIVAL_TIME 3
-#define MAX_ARRIVAL_TIME 10
+#define MIN_ARRIVAL_TIME 1
+#define MAX_ARRIVAL_TIME 3
 
 // Platform configuration
 #define MAX_PLATFORM_CAPACITY 80
