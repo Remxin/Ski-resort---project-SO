@@ -35,13 +35,13 @@
 
 // System limits
 #define MAX_QUEUE_LENGTH 100
-#define MAX_SKIERS 1000
+#define MAX_SKIERS 200
 #define MAX_CHILDREN 2
 
 // Timing configurations (in seconds)
 #define MIN_SERVICE_TIME 1
 #define MAX_SERVICE_TIME 3
-#define MIN_ARRIVAL_TIME 1
+#define MIN_ARRIVAL_TIME 2
 #define MAX_ARRIVAL_TIME 3
 
 // Platform configuration
